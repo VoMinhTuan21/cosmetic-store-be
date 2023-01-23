@@ -8,22 +8,30 @@ import { User, UserDocument } from '../../schemas';
 export class UserService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async findUserIdByEmail(email: string): Promise<string | null> {
+  async findUserByEmail(email: string): Promise<IJWTInfo | null> {
     const user = await this.userModel.findOne({ email: email });
     if (user) {
-      return user.id;
+      return {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      };
     }
 
     return null;
   }
 
-  async createUserForSocialLogin(data: DefaultUser): Promise<string> {
+  async createUserForSocialLogin(data: DefaultUser): Promise<IJWTInfo> {
     const user = await this.userModel.create({
       name: data.name,
       email: data.email,
       image: data.image,
     });
 
-    return user.id;
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    };
   }
 }

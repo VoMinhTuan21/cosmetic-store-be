@@ -1,4 +1,6 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SignInWithSocialMediaDTO } from '../../../dto/request/auth.dto';
@@ -18,22 +20,27 @@ export class AuthService {
   constructor(
     @InjectModel(Account.name) private accountModel: Model<AccountDocument>,
     private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+    @Inject(ConfigService) private config: ConfigService,
   ) {}
 
   async loginWithSocialMedia(data: SignInWithSocialMediaDTO) {
-    const userId = await this.userService.findUserIdByEmail(data.user.email);
+    const user = await this.userService.findUserByEmail(data.user.email);
 
-    if (userId) {
+    if (user) {
       const status = await this.findStatusOfAccount(
-        userId,
+        user._id,
         data.account.provider,
         data.account.providerAccountId,
       );
 
       switch (status) {
         case 'existed':
-          return handleResponseSuccess<boolean>({
-            data: true,
+          return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
+            data: {
+              token: await this.signJWTToken(user._id, user.email, user.name),
+              user: user,
+            },
             message: SIGN_SUCCESS,
           });
 
@@ -55,10 +62,13 @@ export class AuthService {
             providerAccountId: data.account.providerAccountId,
             provider: data.account.provider,
             type: data.account.type,
-            userId: userId,
+            userId: user._id,
           });
-          return handleResponseSuccess<boolean>({
-            data: true,
+          return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
+            data: {
+              token: await this.signJWTToken(user._id, user.email, user.name),
+              user: user,
+            },
             message: SIGN_SUCCESS,
           });
 
@@ -66,17 +76,24 @@ export class AuthService {
           break;
       }
     } else {
-      const newUserId = await this.userService.createUserForSocialLogin(
+      const newUser = await this.userService.createUserForSocialLogin(
         data.user,
       );
 
       await this.accountModel.create({
         ...data.account,
-        userId: newUserId,
+        userId: newUser._id,
       });
 
-      return handleResponseSuccess<boolean>({
-        data: true,
+      return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
+        data: {
+          token: await this.signJWTToken(
+            newUser._id,
+            newUser.email,
+            newUser.name,
+          ),
+          user: newUser,
+        },
         message: SIGN_SUCCESS,
       });
     }
@@ -101,5 +118,22 @@ export class AuthService {
     }
 
     return 'not existed';
+  }
+
+  private async signJWTToken(
+    _id: string,
+    email: string,
+    name: string,
+  ): Promise<string> {
+    const secret: string = this.config.get('JWT_SECRET');
+    const payload: IJWTInfo = {
+      _id,
+      email,
+      name,
+    };
+    return this.jwtService.signAsync(payload, {
+      expiresIn: this.config.get<string>('JWT_EXPIRATION_TIME'),
+      secret,
+    });
   }
 }
