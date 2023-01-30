@@ -1,3 +1,5 @@
+import { Mapper } from '@automapper/core';
+import { InjectMapper } from '@automapper/nestjs';
 import { Injectable, HttpStatus, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -6,23 +8,31 @@ import { Model } from 'mongoose';
 import {
   SignInDTO,
   SignInWithSocialMediaDTO,
+  SignUpWithPassword,
 } from '../../../dto/request/auth.dto';
+import { UserBasicInfoDto } from '../../../dto/response/auth.dto';
 import {
   handleResponseFailure,
   handleResponseSuccess,
 } from '../../../utils/handle-response';
+import { comparePassword } from '../../../utils/hash-password';
 import {
-  ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
+  ERROR_ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
+  ERROR_SIGN_UP,
   SIGN_SUCCESS,
-  USER_NOT_EXIST,
+  SIGN_UP_SUCCESS,
+  ERROR_USER_NOT_EXIST,
+  SIGN_IN_SUCCESS,
+  ERROR_SIGN_IN,
 } from '../../constances';
-import { Account, AccountDocument } from '../../schemas';
+import { Account, AccountDocument, User } from '../../schemas';
 import { UserService } from '../user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(Account.name) private accountModel: Model<AccountDocument>,
+    @InjectMapper() private readonly mapper: Mapper,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     @Inject(ConfigService) private config: ConfigService,
@@ -50,7 +60,7 @@ export class AuthService {
 
         case 'dif proverderAccountId':
           return handleResponseFailure({
-            error: ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
+            error: ERROR_ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
             statusCode: HttpStatus.NOT_ACCEPTABLE,
           });
 
@@ -128,6 +138,7 @@ export class AuthService {
     _id: string,
     email: string,
     name: string,
+    rememberMe = false,
   ): Promise<string> {
     const secret: string = this.config.get('JWT_SECRET');
     const payload: IJWTInfo = {
@@ -135,19 +146,62 @@ export class AuthService {
       email,
       name,
     };
+
+    let expiresIn = this.config.get('JWT_EXPIRATION_TIME_SHORT');
+
+    if (rememberMe) {
+      expiresIn = this.config.get('JWT_EXPIRATION_TIME_LONG');
+    }
+
     return this.jwtService.signAsync(payload, {
-      expiresIn: this.config.get<string>('JWT_EXPIRATION_TIME'),
+      expiresIn: expiresIn,
       secret,
     });
   }
 
-  async signIn(data: SignInDTO) {
-    const user = await this.userService.findUserByEmail(data.email);
-
-    if (!user) {
+  async signup(data: SignUpWithPassword) {
+    try {
+      const newUser = await this.userService.signUP(data);
+      return handleResponseSuccess({
+        data: {
+          token: await this.signJWTToken(
+            newUser._id,
+            newUser.email,
+            newUser.email,
+          ),
+          user: this.mapper.map(newUser, User, UserBasicInfoDto),
+        },
+        message: SIGN_UP_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
       return handleResponseFailure({
-        error: USER_NOT_EXIST,
-        statusCode: HttpStatus.NOT_FOUND,
+        error: error.response?.error || ERROR_SIGN_UP,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async signIn(data: SignInDTO) {
+    try {
+      const user = await this.userService.signIn(data);
+      return handleResponseSuccess({
+        data: {
+          token: await this.signJWTToken(
+            user._id,
+            user.email,
+            user.email,
+            data.rememberMe,
+          ),
+          user: this.mapper.map(user, User, UserBasicInfoDto),
+        },
+        message: SIGN_IN_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_SIGN_IN,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }

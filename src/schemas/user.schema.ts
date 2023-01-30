@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
+import { Gender } from '../constances/enum';
 
 export type UserDocument = User & Document & SchemaTimestampsConfig;
 
@@ -30,6 +31,22 @@ export class User {
     required: true,
   })
   email: string;
+
+  @Prop({
+    type: String,
+  })
+  password: string;
+
+  @Prop({
+    type: String,
+  })
+  phone: string;
+
+  @Prop({
+    type: String,
+    enum: Gender,
+  })
+  gender: Gender;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
