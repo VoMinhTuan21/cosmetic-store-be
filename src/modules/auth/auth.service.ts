@@ -24,8 +24,13 @@ import {
   ERROR_USER_NOT_EXIST,
   SIGN_IN_SUCCESS,
   ERROR_SIGN_IN,
+  ERROR_SEND_OTP,
+  ERROR_EMAIL_HAS_BEEN_USED,
+  SEND_OTP_SUCCESS,
 } from '../../constances';
 import { Account, AccountDocument, User } from '../../schemas';
+import { MailService } from '../mail/mail.service';
+import { OtpverificationService } from '../otpverification/otpverification.service';
 import { UserService } from '../user/user.service';
 
 @Injectable()
@@ -33,9 +38,11 @@ export class AuthService {
   constructor(
     @InjectModel(Account.name) private accountModel: Model<AccountDocument>,
     @InjectMapper() private readonly mapper: Mapper,
+    @Inject(ConfigService) private config: ConfigService,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    @Inject(ConfigService) private config: ConfigService,
+    private readonly mailService: MailService,
+    private readonly otpService: OtpverificationService,
   ) {}
 
   async loginWithSocialMedia(data: SignInWithSocialMediaDTO) {
@@ -161,16 +168,20 @@ export class AuthService {
 
   async signup(data: SignUpWithPassword) {
     try {
+      // verify otp
+      await this.otpService.verifyOTP(data.email, data.code);
+      // create new user
       const newUser = await this.userService.signUP(data);
       return handleResponseSuccess({
-        data: {
-          token: await this.signJWTToken(
-            newUser._id,
-            newUser.email,
-            newUser.email,
-          ),
-          user: this.mapper.map(newUser, User, UserBasicInfoDto),
-        },
+        // data: {
+        //   token: await this.signJWTToken(
+        //     newUser._id,
+        //     newUser.email,
+        //     newUser.email,
+        //   ),
+        //   user: this.mapper.map(newUser, User, UserBasicInfoDto),
+        // },
+        data: null,
         message: SIGN_UP_SUCCESS,
       });
     } catch (error) {
@@ -201,6 +212,34 @@ export class AuthService {
       console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_SIGN_IN,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async sendMailOTP(email: string) {
+    try {
+      const userEmail = await this.userService.findUserByEmail(email);
+      if (userEmail) {
+        handleResponseFailure({
+          error: ERROR_EMAIL_HAS_BEEN_USED,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000);
+
+      await this.otpService.create(email, otp.toString());
+      await this.mailService.sendUserConfirmation(email, otp.toString());
+
+      return handleResponseSuccess({
+        data: null,
+        message: SEND_OTP_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_SEND_OTP,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }

@@ -6,6 +6,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from './modules/user/user.module';
 import { classes } from '@automapper/classes';
 import { AutomapperModule } from '@automapper/nestjs';
+import { MailModule } from './modules/mail/mail.module';
+import { OtpverificationModule } from './modules/otpverification/otpverification.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { AutomapperModule } from '@automapper/nestjs';
     }),
     AuthModule,
     UserModule,
+    MailModule,
+    OtpverificationModule,
   ],
   controllers: [],
   providers: [],

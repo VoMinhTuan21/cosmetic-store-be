@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
+  sendMailOTP,
   SignInDTO,
   SignInWithSocialMediaDTO,
   SignUpWithPassword,
@@ -25,5 +26,10 @@ export class AuthController {
   @Post('/sign-up')
   signUp(@Body() data: SignUpWithPassword) {
     return this.authService.signup(data);
+  }
+
+  @Post('/send-mail-otp')
+  sendMailOTP(@Body() data: sendMailOTP) {
+    return this.authService.sendMailOTP(data.email);
   }
 }

@@ -149,3 +149,10 @@ export class SignInDTO {
   @IsBoolean()
   rememberMe?: boolean;
 }
+
+export class sendMailOTP {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+}
