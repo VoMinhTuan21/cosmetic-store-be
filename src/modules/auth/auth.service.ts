@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SignInWithSocialMediaDTO } from '../../../dto/request/auth.dto';
+import {
+  SignInDTO,
+  SignInWithSocialMediaDTO,
+} from '../../../dto/request/auth.dto';
 import {
   handleResponseFailure,
   handleResponseSuccess,
@@ -11,6 +14,7 @@ import {
 import {
   ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
   SIGN_SUCCESS,
+  USER_NOT_EXIST,
 } from '../../constances';
 import { Account, AccountDocument } from '../../schemas';
 import { UserService } from '../user/user.service';
@@ -135,5 +139,16 @@ export class AuthService {
       expiresIn: this.config.get<string>('JWT_EXPIRATION_TIME'),
       secret,
     });
+  }
+
+  async signIn(data: SignInDTO) {
+    const user = await this.userService.findUserByEmail(data.email);
+
+    if (!user) {
+      return handleResponseFailure({
+        error: USER_NOT_EXIST,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
   }
 }

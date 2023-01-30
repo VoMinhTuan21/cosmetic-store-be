@@ -1,5 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
+  IsEmail,
   IsEnum,
   IsNotEmpty,
   IsNumberString,
@@ -89,4 +91,19 @@ export class SignInWithSocialMediaDTO {
   @ApiProperty()
   @IsNotEmpty()
   account: Account;
+}
+
+export class SignInDTO {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  passowrd: string;
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 }
