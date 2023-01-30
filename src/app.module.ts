@@ -4,9 +4,14 @@ import { AuthModule } from './modules/auth/auth.module';
 import * as Joi from 'joi';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from './modules/user/user.module';
+import { classes } from '@automapper/classes';
+import { AutomapperModule } from '@automapper/nestjs';
 
 @Module({
   imports: [
+    AutomapperModule.forRoot({
+      strategyInitializer: classes(),
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `env/.env.${process.env.NODE_ENV || 'local'}`,

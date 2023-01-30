@@ -1,24 +1,33 @@
+import { Mapper } from '@automapper/core';
+import { InjectMapper } from '@automapper/nestjs';
 import { Injectable, HttpStatus, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SignInWithSocialMediaDTO } from '../../../dto/request/auth.dto';
+import {
+  SignInWithSocialMediaDTO,
+  SignUpWithPassword,
+} from '../../../dto/request/auth.dto';
+import { UserBasicInfoDto } from '../../../dto/response/auth.dto';
 import {
   handleResponseFailure,
   handleResponseSuccess,
 } from '../../../utils/handle-response';
 import {
   ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
+  ERROR_SIGN_UP,
   SIGN_SUCCESS,
+  SIGN_UP_SUCCESS,
 } from '../../constances';
-import { Account, AccountDocument } from '../../schemas';
+import { Account, AccountDocument, User } from '../../schemas';
 import { UserService } from '../user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(Account.name) private accountModel: Model<AccountDocument>,
+    @InjectMapper() private readonly mapper: Mapper,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     @Inject(ConfigService) private config: ConfigService,
@@ -135,5 +144,28 @@ export class AuthService {
       expiresIn: this.config.get<string>('JWT_EXPIRATION_TIME'),
       secret,
     });
+  }
+
+  async signup(data: SignUpWithPassword) {
+    try {
+      const newUser = await this.userService.signUP(data);
+      return handleResponseSuccess({
+        data: {
+          token: await this.signJWTToken(
+            newUser._id,
+            newUser.email,
+            newUser.email,
+          ),
+          user: this.mapper.map(newUser, User, UserBasicInfoDto),
+        },
+        message: SIGN_UP_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_SIGN_UP,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 }
