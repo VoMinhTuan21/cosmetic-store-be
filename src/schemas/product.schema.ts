@@ -2,6 +2,8 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
 import { Gender } from '../constances/enum';
 import { CategoryDocument } from './category.schema';
+import { CommentDocument } from './comment.schema';
+import { ProductItemDocument } from './productItem.schema';
 
 export type ProductDocument = Product & Document & SchemaTimestampsConfig;
 
@@ -29,17 +31,18 @@ export class Product {
 
   @Prop([
     {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
     },
   ])
-  comments: string[];
+  comments: CommentDocument[] | string[];
 
   @Prop([
     {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ProductItem',
     },
   ])
-  productItems: string[];
+  productItems: ProductItemDocument[] | string[];
 
   @Prop([
     {

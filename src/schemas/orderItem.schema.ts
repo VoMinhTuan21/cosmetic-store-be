@@ -1,4 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose from 'mongoose';
+import { ProductItemDocument } from './productItem.schema';
 
 export type OrderItemDocument = OrderItem & Document;
 
@@ -7,9 +9,10 @@ export class OrderItem {
   _id: string;
 
   @Prop({
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductItem',
   })
-  product: string;
+  productItem: ProductItemDocument | string;
 
   @Prop({
     type: Number,

@@ -31,7 +31,7 @@ export class Promotion {
       type: mongoose.Schema.Types.ObjectId,
     },
   ])
-  productItem: ProductItemDocument[] | string[];
+  productItems: ProductItemDocument[] | string[];
 }
 
 export const PromotionSchema = SchemaFactory.createForClass(Promotion);

@@ -35,7 +35,7 @@ export class ProductItem {
       ref: 'VariationOption',
     },
   ])
-  productConfiguartion: VariationOptionDocument[] | string[];
+  productConfiguartions: VariationOptionDocument[] | string[];
 }
 
 export const ProductItemSchema = SchemaFactory.createForClass(ProductItem);
