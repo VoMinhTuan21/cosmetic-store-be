@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { SchemaTimestampsConfig } from 'mongoose';
+import mongoose, { Mongoose, SchemaTimestampsConfig } from 'mongoose';
 import { Gender } from '../constances/enum';
+import { AddressDocument } from './address.schema';
 
 export type UserDocument = User & Document & SchemaTimestampsConfig;
 
@@ -19,11 +20,6 @@ export class User {
     type: mongoose.Schema.Types.Date,
   })
   birthday: string;
-
-  @Prop({
-    type: String,
-  })
-  image: string;
 
   @Prop({
     unique: true,
@@ -47,6 +43,14 @@ export class User {
     enum: Gender,
   })
   gender: Gender;
+
+  @Prop([
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Address',
+    },
+  ])
+  addresses: AddressDocument[] | string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
