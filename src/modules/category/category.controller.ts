@@ -10,6 +10,7 @@ export class CategoryController {
 
   @Post()
   create(@Body() body: CreateCategory) {
+    console.log('body: ', body);
     return this.categoryService.create(body);
   }
 }
