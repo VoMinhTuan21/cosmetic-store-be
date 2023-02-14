@@ -9,6 +9,7 @@ import { AutomapperModule } from '@automapper/nestjs';
 import { MailModule } from './modules/mail/mail.module';
 import { OtpverificationModule } from './modules/otpverification/otpverification.module';
 import { VariationModule } from './modules/variation/variation.module';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { VariationModule } from './modules/variation/variation.module';
     MailModule,
     OtpverificationModule,
     VariationModule,
+    CategoryModule,
   ],
   controllers: [],
   providers: [],
