@@ -10,6 +10,8 @@ import { MailModule } from './modules/mail/mail.module';
 import { OtpverificationModule } from './modules/otpverification/otpverification.module';
 import { VariationModule } from './modules/variation/variation.module';
 import { CategoryModule } from './modules/category/category.module';
+import { ProductModule } from './modules/product/product.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { CategoryModule } from './modules/category/category.module';
     OtpverificationModule,
     VariationModule,
     CategoryModule,
+    ProductModule,
+    CloudinaryModule,
   ],
   controllers: [],
   providers: [],

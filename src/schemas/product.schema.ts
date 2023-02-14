@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
 import { Gender } from '../constances/enum';
+import { BrandDocument } from './brand.schema';
 import { CategoryDocument } from './category.schema';
 import { CommentDocument } from './comment.schema';
 import { ProductItemDocument } from './productItem.schema';
@@ -51,6 +52,12 @@ export class Product {
     },
   ])
   categories: CategoryDocument[] | string[];
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Brand',
+  })
+  brand: BrandDocument | string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
