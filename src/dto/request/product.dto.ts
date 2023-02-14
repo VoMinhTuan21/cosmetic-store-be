@@ -1,5 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumberString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumberString,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateProductItem {
   @ApiProperty({
@@ -23,4 +30,15 @@ export class CreateProductItem {
     },
   })
   images: Express.Multer.File[];
+
+  @ApiPropertyOptional({
+    type: 'array',
+    items: {
+      type: 'string',
+    },
+  })
+  @IsMongoId({ each: true })
+  @IsOptional()
+  @ArrayMinSize(1)
+  productConfiguration: string[];
 }
