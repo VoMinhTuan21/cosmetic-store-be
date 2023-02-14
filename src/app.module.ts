@@ -12,6 +12,7 @@ import { VariationModule } from './modules/variation/variation.module';
 import { CategoryModule } from './modules/category/category.module';
 import { ProductModule } from './modules/product/product.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { BrandModule } from './modules/brand/brand.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
     CategoryModule,
     ProductModule,
     CloudinaryModule,
+    BrandModule,
   ],
   controllers: [],
   providers: [],
