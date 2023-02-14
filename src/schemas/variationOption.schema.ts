@@ -16,7 +16,7 @@ export class VariationOption {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Variation',
   })
-  variation: VariationDocument;
+  parentVariation: VariationDocument;
 
   @Prop({
     type: Array<ITranslate>,

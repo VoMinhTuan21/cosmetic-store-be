@@ -8,6 +8,7 @@ import { classes } from '@automapper/classes';
 import { AutomapperModule } from '@automapper/nestjs';
 import { MailModule } from './modules/mail/mail.module';
 import { OtpverificationModule } from './modules/otpverification/otpverification.module';
+import { VariationModule } from './modules/variation/variation.module';
 import { CategoryModule } from './modules/category/category.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { CategoryModule } from './modules/category/category.module';
     UserModule,
     MailModule,
     OtpverificationModule,
+    VariationModule,
     CategoryModule,
   ],
   controllers: [],
