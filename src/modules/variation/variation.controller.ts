@@ -1,9 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import {
-  CreateVariation,
-  CreateVariationOption,
-} from '../../../dto/request/variant.dto';
+import { CreateVariation, CreateVariationOption } from '../../dto/request';
 import { VariationService } from './variation.service';
 
 @ApiTags('Variation')

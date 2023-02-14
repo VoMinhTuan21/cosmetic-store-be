@@ -2,20 +2,16 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  DefaultUser,
-  SignInDTO,
-  SignUpWithPassword,
-} from '../../../dto/request/auth.dto';
-import { handleResponseFailure } from '../../../utils/handle-response';
-import { comparePassword, hashPasswords } from '../../../utils/hash-password';
-import {
   ERROR_EMAIL_HAS_BEEN_USED,
   ERROR_PASSWORD_NOT_MATCH,
   ERROR_SIGN_IN,
   ERROR_SIGN_UP,
   ERROR_USER_NOT_EXIST,
 } from '../../constances';
+import { DefaultUser, SignUpWithPassword, SignInDTO } from '../../dto/request';
 import { User, UserDocument } from '../../schemas';
+import { handleResponseFailure } from '../../utils/handle-response';
+import { hashPasswords, comparePassword } from '../../utils/hash-password';
 
 @Injectable()
 export class UserService {

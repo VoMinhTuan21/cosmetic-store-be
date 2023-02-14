@@ -2,14 +2,6 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import {
-  CreateVariation,
-  CreateVariationOption,
-} from '../../../dto/request/variant.dto';
-import {
-  handleResponseFailure,
-  handleResponseSuccess,
-} from '../../../utils/handle-response';
-import {
   CREATE_VARIATION_OPTION_SUCCESS,
   CREATE_VARIATION_SUCCESS,
   ERROR_CREATE_VARIATION,
@@ -17,12 +9,17 @@ import {
   ERROR_VARIATION_EXISTED,
   ERROR_VARIATION_OPTION_EXISTED,
 } from '../../constances';
+import { CreateVariation, CreateVariationOption } from '../../dto/request';
 import {
   Variation,
   VariationDocument,
   VariationOption,
   VariationOptionDocument,
 } from '../../schemas';
+import {
+  handleResponseFailure,
+  handleResponseSuccess,
+} from '../../utils/handle-response';
 
 @Injectable()
 export class VariationService {

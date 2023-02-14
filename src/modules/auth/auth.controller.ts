@@ -1,11 +1,11 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
-  sendMailOTP,
   SignInDTO,
   SignInWithSocialMediaDTO,
   SignUpWithPassword,
-} from '../../../dto/request/auth.dto';
+  sendMailOTP,
+} from '../../dto/request';
 import { AuthService } from './auth.service';
 
 @ApiTags('Auth')

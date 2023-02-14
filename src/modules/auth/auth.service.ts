@@ -6,29 +6,27 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  SignInDTO,
-  SignInWithSocialMediaDTO,
-  SignUpWithPassword,
-} from '../../../dto/request/auth.dto';
-import { UserBasicInfoDto } from '../../../dto/response/auth.dto';
-import {
-  handleResponseFailure,
-  handleResponseSuccess,
-} from '../../../utils/handle-response';
-import { comparePassword } from '../../../utils/hash-password';
-import {
   ERROR_ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
   ERROR_SIGN_UP,
   SIGN_SUCCESS,
   SIGN_UP_SUCCESS,
-  ERROR_USER_NOT_EXIST,
   SIGN_IN_SUCCESS,
   ERROR_SIGN_IN,
   ERROR_SEND_OTP,
   ERROR_EMAIL_HAS_BEEN_USED,
   SEND_OTP_SUCCESS,
 } from '../../constances';
+import {
+  SignInWithSocialMediaDTO,
+  SignUpWithPassword,
+  SignInDTO,
+} from '../../dto/request';
+import { UserBasicInfoDto } from '../../dto/response';
 import { Account, AccountDocument, User } from '../../schemas';
+import {
+  handleResponseSuccess,
+  handleResponseFailure,
+} from '../../utils/handle-response';
 import { MailService } from '../mail/mail.service';
 import { OtpverificationService } from '../otpverification/otpverification.service';
 import { UserService } from '../user/user.service';
