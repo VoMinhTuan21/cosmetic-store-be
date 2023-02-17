@@ -13,3 +13,4 @@ export * from './productItem.schema';
 export * from './promotion.schema';
 export * from './variation.schema';
 export * from './variationOption.schema';
+export * from './brand.schema';

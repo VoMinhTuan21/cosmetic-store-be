@@ -11,6 +11,7 @@ import { OtpverificationModule } from './modules/otpverification/otpverification
 import { VariationModule } from './modules/variation/variation.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { BrandModule } from './modules/brand/brand.module';
 import { ProductModule } from './modules/product/product.module';
 
 @Module({
@@ -42,6 +43,7 @@ import { ProductModule } from './modules/product/product.module';
     VariationModule,
     CategoryModule,
     CloudinaryModule,
+    BrandModule,
     ProductModule,
   ],
   controllers: [],
