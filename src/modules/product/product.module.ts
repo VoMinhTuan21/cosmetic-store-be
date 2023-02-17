@@ -8,6 +8,7 @@ import {
   ProductItemSchema,
   ProductSchema,
 } from '../../schemas';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import {
       { name: Product.name, schema: ProductSchema },
       { name: ProductItem.name, schema: ProductItemSchema },
     ]),
+    CloudinaryModule,
   ],
   providers: [ProductService],
   controllers: [ProductController],

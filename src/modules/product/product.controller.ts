@@ -10,7 +10,7 @@ import {
   FilesInterceptor,
 } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { CreateProductItem } from '../../dto/request';
+import { CreateProductItemDTO, CreateProductDTO } from '../../dto/request';
 import { imageFileFilter } from '../../utils/image-file-filter';
 import { ProductService } from './product.service';
 
@@ -18,6 +18,11 @@ import { ProductService } from './product.service';
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
+
+  @Post()
+  createProduct(@Body() dto: CreateProductDTO) {
+    return this.productService.createProduct(dto);
+  }
 
   @Post('/item')
   @ApiConsumes('multipart/form-data')
@@ -27,17 +32,16 @@ export class ProductController {
       { name: 'images', maxCount: 10 },
     ]),
   )
-  @ApiBody({ type: CreateProductItem })
+  @ApiBody({ type: CreateProductItemDTO })
   creteProductItem(
-    @Body() dto: CreateProductItem,
+    @Body() dto: CreateProductItemDTO,
     @UploadedFiles()
     files: {
       thumbnail?: Express.Multer.File[];
       images?: Express.Multer.File[];
     },
   ) {
-    console.log('files.thumbnail: ', files.thumbnail);
-    console.log('files.images: ', files.images);
-    return 'haha';
+    (dto.thumbnail = files.thumbnail[0]), (dto.images = files.images);
+    return this.productService.createProductItem(dto);
   }
 }
