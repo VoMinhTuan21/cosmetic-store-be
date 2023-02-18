@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   UploadedFiles,
   UseInterceptors,
@@ -43,5 +44,10 @@ export class ProductController {
   ) {
     (dto.thumbnail = files.thumbnail[0]), (dto.images = files.images);
     return this.productService.createProductItem(dto);
+  }
+
+  @Get('/list-name')
+  getProductNames() {
+    return this.productService.getProductName();
   }
 }

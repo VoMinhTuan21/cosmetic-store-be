@@ -8,6 +8,8 @@ import {
   ERROR_PRODUCT_EXISTED,
   CREATE_PRODUCT_SUCCESS,
   ERROR_CREATE_PRODUCT,
+  GET_PRODUCT_NAMES_SUCCESS,
+  ERROR_GET_PRODUCT_NAMES,
 } from '../../constances';
 import { CreateProductDTO, CreateProductItemDTO } from '../../dto/request';
 import {
@@ -114,6 +116,22 @@ export class ProductService {
       return handleResponseFailure({
         error: error.response?.error || ERROR_CREATE_PRODUCT,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getProductName() {
+    try {
+      const list = await this.productModel.find({}, { name: 1 });
+
+      return handleResponseSuccess({
+        data: list,
+        message: GET_PRODUCT_NAMES_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_PRODUCT_NAMES,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }
