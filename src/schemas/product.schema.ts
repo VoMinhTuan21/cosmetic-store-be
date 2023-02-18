@@ -5,6 +5,7 @@ import { BrandDocument } from './brand.schema';
 import { CategoryDocument } from './category.schema';
 import { CommentDocument } from './comment.schema';
 import { ProductItemDocument } from './productItem.schema';
+import { VariationDocument } from './variation.schema';
 
 export type ProductDocument = Product & Document & SchemaTimestampsConfig;
 
@@ -52,6 +53,14 @@ export class Product {
     },
   ])
   categories: CategoryDocument[] | string[];
+
+  @Prop([
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Variation',
+    },
+  ])
+  variations: VariationDocument[] | string[];
 
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
