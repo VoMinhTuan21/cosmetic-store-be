@@ -79,6 +79,10 @@ export class CreateProductDTO {
   @ArrayMinSize(1)
   categories: string[];
 
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
   @Transform(({ value }) => {
     return Array.isArray(value) ? value : value.split(',');
   })
