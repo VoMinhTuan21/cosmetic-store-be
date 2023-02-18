@@ -68,12 +68,16 @@ export class CreateProductDTO {
   @Type(() => Translation)
   description: Translation[];
 
-  @ApiProperty({
-    type: 'string',
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
   })
   @IsMongoId({ each: true })
   @ArrayMinSize(1)
-  categories: string;
+  categories: string[];
 
   @ApiProperty({
     type: 'string',

@@ -55,4 +55,9 @@ export class BrandController {
   async delete(@Param('id') id: string) {
     return await this.brandService.delete(id);
   }
+
+  @Get('/list-name')
+  getListBrandName() {
+    return this.brandService.getListBrandName();
+  }
 }

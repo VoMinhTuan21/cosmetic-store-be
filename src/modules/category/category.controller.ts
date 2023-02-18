@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CreateCategory } from '../../dto/request';
 import { CategoryService } from './category.service';
@@ -12,5 +12,10 @@ export class CategoryController {
   create(@Body() body: CreateCategory) {
     console.log('body: ', body);
     return this.categoryService.create(body);
+  }
+
+  @Get('/leaf')
+  getLeafCategories() {
+    return this.categoryService.getLeaf();
   }
 }

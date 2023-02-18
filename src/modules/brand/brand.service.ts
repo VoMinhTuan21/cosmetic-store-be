@@ -2,16 +2,19 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  CREATE_BANRD_SUCCESS,
-  DELETE_BRAND_SUCCESS,
   ERROR_BRAND_NAME_EXISTED,
-  ERROR_BRAND_NOT_EXIST,
+  CREATE_BANRD_SUCCESS,
   ERROR_CREATE_BRAND,
-  ERROR_DELETE_BRAND,
+  ERROR_BRAND_NOT_EXIST,
   ERROR_NO_FIELD_TO_UPDATE,
-  ERROR_UPDATE_BRAND,
   UPDATE_BRAND_SUCCESS,
-} from '../../constances/brand-res-message';
+  ERROR_UPDATE_BRAND,
+  DELETE_BRAND_SUCCESS,
+  ERROR_DELETE_BRAND,
+  GET_BRAND_SUCCESSS,
+  ERROR_GET_BRAND,
+} from '../../constances';
+import { BrandNameDTO } from '../../dto/response';
 import { Brand, BrandDocument } from '../../schemas';
 import {
   handleResponseFailure,
@@ -77,7 +80,7 @@ export class BrandService {
       }
 
       if (name) {
-        var regex = new RegExp(['^', name, '$'].join(''), 'i');
+        const regex = new RegExp(['^', name, '$'].join(''), 'i');
         const brandNameFound = await this.brandModel.findOne({ name: regex });
         if (brandNameFound) {
           return handleResponseFailure({
@@ -128,6 +131,24 @@ export class BrandService {
       return handleResponseFailure({
         error: error.response?.error || ERROR_DELETE_BRAND,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getListBrandName() {
+    try {
+      const brands = (await this.brandModel.find(
+        {},
+        { _id: 1, name: 1 },
+      )) as BrandNameDTO[];
+      return handleResponseSuccess({
+        data: brands,
+        message: GET_BRAND_SUCCESSS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_BRAND,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }

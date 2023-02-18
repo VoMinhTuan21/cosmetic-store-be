@@ -27,3 +27,10 @@ export class CreateVariationOption {
   @Type(() => Translation)
   name: Translation[];
 }
+
+export class QueryGetVariationOptionsDTO {
+  @ApiProperty({ type: String })
+  @IsMongoId()
+  @IsNotEmpty()
+  parentId: string;
+}

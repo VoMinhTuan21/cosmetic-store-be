@@ -6,10 +6,15 @@ import {
   CREATE_VARIATION_SUCCESS,
   ERROR_CREATE_VARIATION,
   ERROR_CREATE_VARIATION_OPTION,
+  ERROR_GET_VARIATION,
+  ERROR_GET_VARIATION_OPTION,
   ERROR_VARIATION_EXISTED,
   ERROR_VARIATION_OPTION_EXISTED,
+  GET_VARIATION_OPTION_SUCCESS,
+  GET_VARIATION_SUCCESS,
 } from '../../constances';
 import { CreateVariation, CreateVariationOption } from '../../dto/request';
+import { VariationOptionResDTO, VariationResDTO } from '../../dto/response';
 import {
   Variation,
   VariationDocument,
@@ -86,6 +91,45 @@ export class VariationService {
       return handleResponseFailure({
         error: error.response?.error || ERROR_CREATE_VARIATION_OPTION,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async get() {
+    try {
+      const variations = (await this.variationModel.find(
+        {},
+        { _id: 1, name: 1 },
+      )) as VariationResDTO[];
+      return handleResponseSuccess({
+        data: variations,
+        message: GET_VARIATION_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_VARIATION,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getVaritionOptions(parentId: string) {
+    try {
+      const variationOptions = (await this.variationOptionModel.find(
+        {
+          parentElement: new mongoose.Types.ObjectId(parentId),
+        },
+        { value: 1 },
+      )) as VariationOptionResDTO[];
+
+      return handleResponseSuccess({
+        data: variationOptions,
+        message: GET_VARIATION_OPTION_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_VARIATION_OPTION,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }
