@@ -115,15 +115,20 @@ export class VariationService {
 
   async getVaritionOptions(parentId: string) {
     try {
+      const variation = await this.variationModel.findById(parentId, {
+        _id: 1,
+        name: 1,
+      });
+
       const variationOptions = (await this.variationOptionModel.find(
         {
-          parentElement: new mongoose.Types.ObjectId(parentId),
+          parentVariation: parentId,
         },
         { value: 1 },
       )) as VariationOptionResDTO[];
 
       return handleResponseSuccess({
-        data: variationOptions,
+        data: { variation, variationOptions },
         message: GET_VARIATION_OPTION_SUCCESS,
       });
     } catch (error) {
