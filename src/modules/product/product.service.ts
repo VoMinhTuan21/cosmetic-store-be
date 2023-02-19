@@ -122,7 +122,7 @@ export class ProductService {
 
   async getProductName() {
     try {
-      const list = await this.productModel.find({}, { name: 1 });
+      const list = await this.productModel.find({}, { name: 1, variations: 1 });
 
       return handleResponseSuccess({
         data: list,
