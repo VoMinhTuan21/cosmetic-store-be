@@ -1,6 +1,7 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
+import { pipeline } from 'stream';
 import {
   ERROR_PRODUCT_ITEM_EXISTED,
   CREATE_PRODUCT_ITEM_SUCCESS,
@@ -10,8 +11,11 @@ import {
   ERROR_CREATE_PRODUCT,
   GET_PRODUCT_NAMES_SUCCESS,
   ERROR_GET_PRODUCT_NAMES,
+  GET_PRODUCT_DASHBOARD_TABLE_SUCCESS,
+  ERROR_GET_PRODUCT_DASHBOARD_TABLE,
 } from '../../constances';
 import { CreateProductDTO, CreateProductItemDTO } from '../../dto/request';
+import { ProductDashboardTableDTO } from '../../dto/response';
 import {
   Product,
   ProductDocument,
@@ -41,7 +45,7 @@ export class ProductService {
 
       const existedProductItem = await this.productItemModel.find({
         _id: { $in: productItems },
-        productConfiguartions: { $all: dto.productConfiguration },
+        productConfigurations: { $all: dto.productConfiguration },
       });
 
       if (existedProductItem.length > 0) {
@@ -131,6 +135,100 @@ export class ProductService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_PRODUCT_NAMES,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getProductDashboard() {
+    try {
+      const products = await this.productModel.aggregate([
+        { $unwind: '$name' },
+        { $match: { 'name.language': 'vi' } },
+        {
+          $lookup: {
+            from: 'productitems',
+            localField: 'productItems',
+            foreignField: '_id',
+            as: 'productItems',
+            pipeline: [
+              {
+                $lookup: {
+                  from: 'variationoptions',
+                  localField: 'productConfigurations',
+                  foreignField: '_id',
+                  as: 'productConfigurations',
+                  pipeline: [
+                    { $unwind: '$value' },
+                    { $match: { 'value.language': 'vi' } },
+                    // { $project: { value: 1 } },
+                    {
+                      $replaceRoot: {
+                        newRoot: {
+                          _id: '$_id',
+                          value: '$value.value',
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                $project: { price: 1, productConfigurations: 1 },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'categories',
+            foreignField: '_id',
+            as: 'categories',
+            pipeline: [
+              { $unwind: '$name' },
+              { $match: { 'name.language': 'vi' } },
+              // { $project: { name: 1 } },
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    _id: '$_id',
+                    name: '$name.value',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: 'brands',
+            localField: 'brand',
+            foreignField: '_id',
+            as: 'brand',
+            pipeline: [{ $project: { name: 1 } }],
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: {
+              _id: '$_id',
+              name: '$name.value',
+              productItems: '$productItems',
+              brand: '$brand',
+              cagetories: '$categories',
+            },
+          },
+        },
+      ]);
+
+      return handleResponseSuccess<ProductDashboardTableDTO[]>({
+        data: products,
+        message: GET_PRODUCT_DASHBOARD_TABLE_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_PRODUCT_DASHBOARD_TABLE,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

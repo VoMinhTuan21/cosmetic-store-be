@@ -50,4 +50,9 @@ export class ProductController {
   getProductNames() {
     return this.productService.getProductName();
   }
+
+  @Get('/dashboard')
+  getProductDashboard() {
+    return this.productService.getProductDashboard();
+  }
 }
