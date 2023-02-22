@@ -66,4 +66,9 @@ export class ProductController {
   ) {
     return this.productService.deleteProductItem(productId, productItemId);
   }
+
+  @Delete('/dashboard/product/:productId')
+  deleteProduct(@Param('productId', ValidateMongoId) productId: string) {
+    return this.productService.deleteProduct(productId);
+  }
 }

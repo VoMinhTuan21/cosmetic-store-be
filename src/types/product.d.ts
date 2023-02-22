@@ -7,3 +7,16 @@ declare interface ICreatedProductItem {
     value: string;
   }[];
 }
+
+declare interface ICreateProduct {
+  _id: string;
+  name: string;
+  brand: {
+    _id: string;
+    name: string;
+  }[];
+  categories: {
+    _id: string;
+    name: string;
+  }[];
+}

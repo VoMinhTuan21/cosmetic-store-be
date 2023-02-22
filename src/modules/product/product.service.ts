@@ -14,6 +14,8 @@ import {
   GET_PRODUCT_DASHBOARD_TABLE_SUCCESS,
   ERROR_GET_PRODUCT_DASHBOARD_TABLE,
   ERROR_DELETE_PRODUCT_ITEM,
+  ERROR_DELETE_PRODUCT,
+  DELETE_PRODUCT_SUCCESS,
 } from '../../constances';
 import { CreateProductDTO, CreateProductItemDTO } from '../../dto/request';
 import { ProductDashboardTableDTO } from '../../dto/response';
@@ -152,8 +154,55 @@ export class ProductService {
         ...dto,
       });
 
+      const newProduct = (await this.productModel.aggregate([
+        { $unwind: '$name' },
+        { $match: { 'name.language': 'vi' } },
+        { $match: { _id: product._id } },
+        {
+          $lookup: {
+            from: 'categories',
+            foreignField: '_id',
+            localField: 'categories',
+            as: 'categories',
+            pipeline: [
+              { $unwind: '$name' },
+              { $match: { 'name.language': 'vi' } },
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    _id: '$_id',
+                    name: '$name.value',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: 'brands',
+            foreignField: '_id',
+            localField: 'brand',
+            as: 'brand',
+            pipeline: [{ $project: { _id: 1, name: 1 } }],
+          },
+        },
+        { $project: { _id: 1, name: 1, brand: 1, categories: 1 } },
+        {
+          $replaceRoot: {
+            newRoot: {
+              _id: '$_id',
+              name: '$name.value',
+              productItems: '$productItems',
+              brand: '$brand',
+              categories: '$categories',
+            },
+          },
+        },
+      ])) as ICreateProduct[];
+
       return handleResponseSuccess({
-        data: product,
+        data: newProduct[0],
         message: CREATE_PRODUCT_SUCCESS,
       });
     } catch (error) {
@@ -256,7 +305,7 @@ export class ProductService {
               name: '$name.value',
               productItems: '$productItems',
               brand: '$brand',
-              cagetories: '$categories',
+              categories: '$categories',
             },
           },
         },
@@ -301,6 +350,33 @@ export class ProductService {
       console.log('error: ', error);
       return handleResponseFailure({
         error: ERROR_DELETE_PRODUCT_ITEM,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async deleteProduct(productId: string) {
+    try {
+      const productDeleted = await this.productModel.findByIdAndDelete(
+        productId,
+      );
+      for (let i = 0; i < productDeleted.productItems.length; i++) {
+        const productItemId = productDeleted.productItems[i];
+        const productItemDeleted =
+          await this.productItemModel.findByIdAndDelete(productItemId);
+        this.cloudinaryService.deleteImage(productItemDeleted.thumbnail);
+        productItemDeleted.images.forEach((publicId) =>
+          this.cloudinaryService.deleteImage(publicId),
+        );
+      }
+
+      return handleResponseSuccess({
+        message: DELETE_PRODUCT_SUCCESS,
+        data: productId,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_DELETE_PRODUCT,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
