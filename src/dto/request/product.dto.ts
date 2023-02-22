@@ -9,7 +9,6 @@ import {
   IsOptional,
   ValidateNested,
 } from 'class-validator';
-import { ObjectId } from 'mongodb';
 import { Translation } from './common.dto';
 
 export class CreateProductItemDTO {
@@ -19,6 +18,13 @@ export class CreateProductItemDTO {
   @IsNumberString()
   @IsNotEmpty()
   price: string;
+
+  @ApiProperty({
+    type: 'string',
+  })
+  @IsNumberString()
+  @IsNotEmpty()
+  quantity: string;
 
   @ApiProperty({
     type: 'string',

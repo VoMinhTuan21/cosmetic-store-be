@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   UploadedFiles,
   UseInterceptors,
@@ -13,6 +15,7 @@ import {
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CreateProductItemDTO, CreateProductDTO } from '../../dto/request';
 import { imageFileFilter } from '../../utils/image-file-filter';
+import { ValidateMongoId } from '../../utils/validate-pipe';
 import { ProductService } from './product.service';
 
 @ApiTags('Product')
@@ -54,5 +57,13 @@ export class ProductController {
   @Get('/dashboard')
   getProductDashboard() {
     return this.productService.getProductDashboard();
+  }
+
+  @Delete('/dashboard/product-item/:productId/:productItemId')
+  deleteProductItem(
+    @Param('productId', ValidateMongoId) productId: string,
+    @Param('productItemId', ValidateMongoId) productItemId: string,
+  ) {
+    return this.productService.deleteProductItem(productId, productItemId);
   }
 }

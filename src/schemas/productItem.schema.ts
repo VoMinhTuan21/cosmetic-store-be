@@ -18,6 +18,11 @@ export class ProductItem {
   price: number;
 
   @Prop({
+    type: Number,
+  })
+  quantity: number;
+
+  @Prop({
     type: String,
   })
   thumbnail: string;
@@ -35,7 +40,7 @@ export class ProductItem {
       ref: 'VariationOption',
     },
   ])
-  productConfiguartions: VariationOptionDocument[] | string[];
+  productConfigurations: VariationOptionDocument[] | string[];
 }
 
 export const ProductItemSchema = SchemaFactory.createForClass(ProductItem);
