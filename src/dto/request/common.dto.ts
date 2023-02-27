@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, validate } from 'class-validator';
 import { Language } from '../../constances/enum';
 
 export class Translation {
@@ -11,4 +11,16 @@ export class Translation {
   @IsString()
   @IsNotEmpty()
   value: string;
+}
+
+export class TranslationV2 {
+  @ApiProperty({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  vi: string;
+
+  @ApiProperty({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  en: string;
 }

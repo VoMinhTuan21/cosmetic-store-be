@@ -1,8 +1,16 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
   CreateVariation,
-  CreateVariationOption,
+  CreateVariationOptionsDTO,
   QueryGetVariationOptionsDTO,
 } from '../../dto/request';
 import { VariationService } from './variation.service';
@@ -17,9 +25,9 @@ export class VariationController {
     return this.variationService.createVariation(dto);
   }
 
-  @Post('/option')
-  createVariationOption(@Body() dto: CreateVariationOption) {
-    return this.variationService.createVariationOption(dto);
+  @Post('/options')
+  createVariationOption(@Body() dto: CreateVariationOptionsDTO) {
+    return this.variationService.createVariationOptions(dto);
   }
 
   @Get()
@@ -30,5 +38,15 @@ export class VariationController {
   @Get('/options?')
   getVariationOptions(@Query() query: QueryGetVariationOptionsDTO) {
     return this.variationService.getVaritionOptions(query.parentId);
+  }
+
+  @Get('/table')
+  getVariationTable() {
+    return this.variationService.getVariationsTable();
+  }
+
+  @Delete('/option/:id')
+  deleteVariationOption(@Param('id') id: string) {
+    return this.variationService.deleteVariationOption(id);
   }
 }
