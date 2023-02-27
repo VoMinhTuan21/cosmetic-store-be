@@ -4,6 +4,7 @@ export class ProductDashboardTableDTO {
   productItems: {
     _id: string;
     price: number;
+    quantity: number;
     productConfigurations: {
       _id: string;
       value: string;

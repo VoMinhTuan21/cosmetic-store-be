@@ -13,6 +13,9 @@ import {
   ERROR_GET_PRODUCT_NAMES,
   GET_PRODUCT_DASHBOARD_TABLE_SUCCESS,
   ERROR_GET_PRODUCT_DASHBOARD_TABLE,
+  ERROR_DELETE_PRODUCT_ITEM,
+  ERROR_DELETE_PRODUCT,
+  DELETE_PRODUCT_SUCCESS,
 } from '../../constances';
 import { CreateProductDTO, CreateProductItemDTO } from '../../dto/request';
 import { ProductDashboardTableDTO } from '../../dto/response';
@@ -49,6 +52,7 @@ export class ProductService {
       });
 
       if (existedProductItem.length > 0) {
+        console.log('existedProductItem: ', existedProductItem);
         return handleResponseFailure({
           error: ERROR_PRODUCT_ITEM_EXISTED,
           statusCode: HttpStatus.CONFLICT,
@@ -71,9 +75,10 @@ export class ProductService {
 
       const productItem = await this.productItemModel.create({
         price: dto.price,
+        quantity: dto.quantity,
         thumbnail: thumbnail.public_id,
         images: images,
-        productConfiguartions: dto.productConfiguration,
+        productConfigurations: dto.productConfiguration,
       });
 
       await this.productModel.findOneAndUpdate(
@@ -83,8 +88,45 @@ export class ProductService {
         },
       );
 
+      const newProductItem = (await this.productItemModel.aggregate([
+        { $match: { _id: productItem._id } },
+        {
+          $lookup: {
+            from: 'variationoptions',
+            foreignField: '_id',
+            localField: 'productConfigurations',
+            as: 'productConfigurations',
+            pipeline: [
+              {
+                $unwind: '$value',
+              },
+              { $match: { 'value.language': 'vi' } },
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    _id: '$_id',
+                    value: '$value.value',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            price: 1,
+            quantity: 1,
+            productConfigurations: 1,
+          },
+        },
+      ])) as ICreatedProductItem[];
+
       return handleResponseSuccess({
-        data: productItem,
+        data: {
+          productId: dto.productId,
+          productItem: newProductItem[0],
+        },
         message: CREATE_PRODUCT_ITEM_SUCCESS,
       });
     } catch (error) {
@@ -112,8 +154,55 @@ export class ProductService {
         ...dto,
       });
 
+      const newProduct = (await this.productModel.aggregate([
+        { $unwind: '$name' },
+        { $match: { 'name.language': 'vi' } },
+        { $match: { _id: product._id } },
+        {
+          $lookup: {
+            from: 'categories',
+            foreignField: '_id',
+            localField: 'categories',
+            as: 'categories',
+            pipeline: [
+              { $unwind: '$name' },
+              { $match: { 'name.language': 'vi' } },
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    _id: '$_id',
+                    name: '$name.value',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: 'brands',
+            foreignField: '_id',
+            localField: 'brand',
+            as: 'brand',
+            pipeline: [{ $project: { _id: 1, name: 1 } }],
+          },
+        },
+        { $project: { _id: 1, name: 1, brand: 1, categories: 1 } },
+        {
+          $replaceRoot: {
+            newRoot: {
+              _id: '$_id',
+              name: '$name.value',
+              productItems: '$productItems',
+              brand: '$brand',
+              categories: '$categories',
+            },
+          },
+        },
+      ])) as ICreateProduct[];
+
       return handleResponseSuccess({
-        data: product,
+        data: newProduct[0],
         message: CREATE_PRODUCT_SUCCESS,
       });
     } catch (error) {
@@ -174,7 +263,7 @@ export class ProductService {
                 },
               },
               {
-                $project: { price: 1, productConfigurations: 1 },
+                $project: { price: 1, quantity: 1, productConfigurations: 1 },
               },
             ],
           },
@@ -216,7 +305,7 @@ export class ProductService {
               name: '$name.value',
               productItems: '$productItems',
               brand: '$brand',
-              cagetories: '$categories',
+              categories: '$categories',
             },
           },
         },
@@ -229,6 +318,65 @@ export class ProductService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_PRODUCT_DASHBOARD_TABLE,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async deleteProductItem(productId: string, productItemId: string) {
+    try {
+      await this.productModel.findByIdAndUpdate(productId, {
+        $pull: {
+          productItems: productItemId,
+        },
+      });
+
+      const deletedItem = await this.productItemModel.findByIdAndDelete(
+        productItemId,
+      );
+      this.cloudinaryService.deleteImage(deletedItem.thumbnail);
+      deletedItem.images.forEach((publicId) => {
+        this.cloudinaryService.deleteImage(publicId);
+      });
+
+      return handleResponseSuccess({
+        data: {
+          productId,
+          productItemId,
+        },
+        message: GET_PRODUCT_DASHBOARD_TABLE_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_DELETE_PRODUCT_ITEM,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async deleteProduct(productId: string) {
+    try {
+      const productDeleted = await this.productModel.findByIdAndDelete(
+        productId,
+      );
+      for (let i = 0; i < productDeleted.productItems.length; i++) {
+        const productItemId = productDeleted.productItems[i];
+        const productItemDeleted =
+          await this.productItemModel.findByIdAndDelete(productItemId);
+        this.cloudinaryService.deleteImage(productItemDeleted.thumbnail);
+        productItemDeleted.images.forEach((publicId) =>
+          this.cloudinaryService.deleteImage(publicId),
+        );
+      }
+
+      return handleResponseSuccess({
+        message: DELETE_PRODUCT_SUCCESS,
+        data: productId,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_DELETE_PRODUCT,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
