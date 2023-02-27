@@ -1,7 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsMongoId, IsNotEmpty, ValidateNested } from 'class-validator';
-import { Translation } from './common.dto';
+import {
+  ArrayMinSize,
+  IsMongoId,
+  IsNotEmpty,
+  IsOptional,
+  ValidateNested,
+} from 'class-validator';
+import { Translation, TranslationV2 } from './common.dto';
 
 export class CreateVariation {
   @ApiProperty({
@@ -10,9 +16,18 @@ export class CreateVariation {
   @ValidateNested({ each: true })
   @Type(() => Translation)
   name: Translation[];
+
+  @ApiPropertyOptional({
+    type: [TranslationV2],
+  })
+  @IsOptional()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => TranslationV2)
+  options: TranslationV2[];
 }
 
-export class CreateVariationOption {
+export class CreateVariationOptionsDTO {
   @ApiProperty({
     type: String,
   })
@@ -21,11 +36,12 @@ export class CreateVariationOption {
   parentVariation: string;
 
   @ApiProperty({
-    type: [Translation],
+    type: [TranslationV2],
   })
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => Translation)
-  name: Translation[];
+  @Type(() => TranslationV2)
+  options: TranslationV2[];
 }
 
 export class QueryGetVariationOptionsDTO {

@@ -3,4 +3,12 @@ export class VariationResDTO {
   name: ITranslate[];
 }
 
-export class VariationOptionResDTO extends VariationResDTO {}
+export class VariationOptionResDTO {
+  _id: string;
+  value: ITranslate[];
+}
+
+export class VariationsTableResDTO {
+  variation: VariationResDTO;
+  variationOptions: VariationOptionResDTO[];
+}

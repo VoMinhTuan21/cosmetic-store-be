@@ -8,6 +8,7 @@ import {
   VariationOptionSchema,
   VariationSchema,
 } from '../../schemas';
+import { VariationOptionProfile, VariationProfile } from './variation.profile';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import {
       { name: VariationOption.name, schema: VariationOptionSchema },
     ]),
   ],
-  providers: [VariationService],
+  providers: [VariationService, VariationProfile, VariationOptionProfile],
   controllers: [VariationController],
 })
 export class VariationModule {}
