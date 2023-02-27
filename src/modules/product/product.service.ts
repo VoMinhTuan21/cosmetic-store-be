@@ -1,3 +1,5 @@
+import { Mapper } from '@automapper/core';
+import { InjectMapper } from '@automapper/nestjs';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
@@ -16,9 +18,18 @@ import {
   ERROR_DELETE_PRODUCT_ITEM,
   ERROR_DELETE_PRODUCT,
   DELETE_PRODUCT_SUCCESS,
+  ERROR_FIND_PRODUCT_BY_ID,
+  FIND_PRODUCT_BY_ID_SUCCESS,
+  ERROR_PRODUCT_NOT_FOUND,
+  ERROR_UPDATE_PRODUCT,
+  UPDATE_PRODUCT_SUCCESS,
 } from '../../constances';
-import { CreateProductDTO, CreateProductItemDTO } from '../../dto/request';
-import { ProductDashboardTableDTO } from '../../dto/response';
+import {
+  CreateProductDTO,
+  CreateProductItemDTO,
+  UpdateProductDTO,
+} from '../../dto/request';
+import { ProductDashboardTableDTO, ProductSimPleDTO } from '../../dto/response';
 import {
   Product,
   ProductDocument,
@@ -38,6 +49,7 @@ export class ProductService {
     private readonly productModel: Model<ProductDocument>,
     @InjectModel(ProductItem.name)
     private readonly productItemModel: Model<ProductItemDocument>,
+    @InjectMapper() private readonly mapper: Mapper,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -377,6 +389,101 @@ export class ProductService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_DELETE_PRODUCT,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async findProductById(productId: string) {
+    try {
+      const product = await this.productModel.findById(productId);
+      if (product) {
+        return handleResponseSuccess({
+          message: FIND_PRODUCT_BY_ID_SUCCESS,
+          data: this.mapper.map(product, Product, ProductSimPleDTO),
+        });
+      }
+
+      return handleResponseFailure({
+        error: ERROR_PRODUCT_NOT_FOUND,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_FIND_PRODUCT_BY_ID,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateProduct(productId: string, body: UpdateProductDTO) {
+    try {
+      await this.productModel.findByIdAndUpdate(productId, {
+        name: body.name,
+        description: body.description,
+        brand: body.brand,
+        categories: body.categories,
+      });
+
+      const products = await this.productModel.aggregate([
+        { $unwind: '$name' },
+        {
+          $match: {
+            'name.language': 'vi',
+            _id: new mongoose.Types.ObjectId(productId),
+          },
+        },
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'categories',
+            foreignField: '_id',
+            as: 'categories',
+            pipeline: [
+              { $unwind: '$name' },
+              { $match: { 'name.language': 'vi' } },
+              // { $project: { name: 1 } },
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    _id: '$_id',
+                    name: '$name.value',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: 'brands',
+            localField: 'brand',
+            foreignField: '_id',
+            as: 'brand',
+            pipeline: [{ $project: { name: 1 } }],
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: {
+              _id: '$_id',
+              name: '$name.value',
+              brand: '$brand',
+              categories: '$categories',
+            },
+          },
+        },
+      ]);
+
+      return handleResponseSuccess({
+        message: UPDATE_PRODUCT_SUCCESS,
+        data: products[0],
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_UPDATE_PRODUCT,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

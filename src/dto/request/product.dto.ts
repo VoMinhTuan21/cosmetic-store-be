@@ -102,3 +102,36 @@ export class CreateProductDTO {
   @IsMongoId()
   brand: string;
 }
+
+export class UpdateProductDTO {
+  @ApiProperty({
+    type: [Translation],
+  })
+  @ValidateNested({ each: true })
+  @Type(() => Translation)
+  name: Translation[];
+
+  @ApiProperty({
+    type: [Translation],
+  })
+  @ValidateNested({ each: true })
+  @Type(() => Translation)
+  description: Translation[];
+
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
+  })
+  @IsMongoId({ each: true })
+  @ArrayMinSize(1)
+  categories: string[];
+
+  @ApiProperty({
+    type: 'string',
+  })
+  @IsMongoId()
+  brand: string;
+}

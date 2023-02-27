@@ -19,3 +19,11 @@ export class ProductDashboardTableDTO {
     name: string;
   }[];
 }
+
+export class ProductSimPleDTO {
+  _id: string;
+  name: ITranslate[];
+  description: ITranslate[];
+  categories: string[];
+  brand: string;
+}
