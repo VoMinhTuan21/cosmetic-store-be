@@ -23,11 +23,16 @@ import {
   ERROR_PRODUCT_NOT_FOUND,
   ERROR_UPDATE_PRODUCT,
   UPDATE_PRODUCT_SUCCESS,
+  ERROR_FIND_PRODUCT_ITEM,
+  FIND_PRODUCT_ITEM_BY_ID_SUCCESS,
+  ERROR_UPDATE_PRODUCT_ITEM,
+  UPDATE_PRODUCT_ITEM_SUCCESS,
 } from '../../constances';
 import {
   CreateProductDTO,
   CreateProductItemDTO,
   UpdateProductDTO,
+  UpdateProductItemDTO,
 } from '../../dto/request';
 import { ProductDashboardTableDTO, ProductSimPleDTO } from '../../dto/response';
 import {
@@ -132,7 +137,7 @@ export class ProductService {
             productConfigurations: 1,
           },
         },
-      ])) as ICreatedProductItem[];
+      ])) as IProductItem[];
 
       return handleResponseSuccess({
         data: {
@@ -485,6 +490,147 @@ export class ProductService {
       return handleResponseFailure({
         error: ERROR_UPDATE_PRODUCT,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async findProductItemById(itemId: string, productId: string) {
+    try {
+      const prodItem = await this.productItemModel.findById(itemId);
+      prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
+        prodItem.thumbnail,
+      );
+      let images: string[] = [];
+      for (let i = 0; i < prodItem.images.length; i++) {
+        const publicId = prodItem.images[i];
+        const url = await this.cloudinaryService.getImageUrl(publicId);
+        images.push(url);
+      }
+
+      const product = await this.productModel.findById(productId, 'variations');
+
+      return handleResponseSuccess({
+        message: FIND_PRODUCT_ITEM_BY_ID_SUCCESS,
+        data: {
+          variations: product.variations,
+          prodItem: {
+            _id: prodItem._id,
+            price: prodItem.price,
+            quantity: prodItem.quantity,
+            thumbnail: prodItem.thumbnail,
+            images,
+            productConfigurations: prodItem.productConfigurations,
+          },
+        },
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_FIND_PRODUCT_ITEM,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateProductItem(itemId: string, dto: UpdateProductItemDTO) {
+    try {
+      const productItems = (await this.productModel.findById(dto.productId))
+        .productItems as string[];
+
+      const existedProductItem = await this.productItemModel.find({
+        _id: { $in: productItems },
+        productConfigurations: { $all: dto.productConfiguration },
+      });
+
+      const prodItem = await this.productItemModel.findById(itemId);
+
+      existedProductItem.forEach((item) => {
+        if (item._id.toString() !== prodItem._id.toString()) {
+          console.log('existedProductItem: ', existedProductItem);
+          return handleResponseFailure({
+            error: ERROR_PRODUCT_ITEM_EXISTED,
+            statusCode: HttpStatus.CONFLICT,
+          });
+        }
+      });
+
+      if (dto.images) {
+        const images: string[] = [];
+
+        for (const image of dto.images) {
+          const { public_id } = await this.cloudinaryService.uploadImage(
+            image,
+            'hygge/products',
+          );
+          images.push(public_id);
+        }
+
+        prodItem.images.forEach((publicId) =>
+          this.cloudinaryService.deleteImage(publicId),
+        );
+        prodItem.images.splice(0);
+        prodItem.images.push(...images);
+      }
+
+      if (dto.thumbnail) {
+        const { public_id } = await this.cloudinaryService.uploadImage(
+          dto.thumbnail,
+          'hygge/products',
+        );
+        prodItem.thumbnail = public_id;
+      }
+
+      prodItem.price = +dto.price;
+      prodItem.quantity = +dto.quantity;
+      prodItem.productConfigurations = dto.productConfiguration;
+      await prodItem.save();
+
+      const updatedItem = (await this.productItemModel.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(itemId) } },
+        {
+          $lookup: {
+            from: 'variationoptions',
+            foreignField: '_id',
+            localField: 'productConfigurations',
+            as: 'productConfigurations',
+            pipeline: [
+              {
+                $unwind: '$value',
+              },
+              { $match: { 'value.language': 'vi' } },
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    _id: '$_id',
+                    value: '$value.value',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            price: 1,
+            quantity: 1,
+            productConfigurations: 1,
+          },
+        },
+      ])) as IProductItem[];
+
+      return handleResponseSuccess({
+        message: UPDATE_PRODUCT_ITEM_SUCCESS,
+        data: {
+          productId: dto.productId,
+          prodItem: updatedItem[0],
+        },
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_UPDATE_PRODUCT_ITEM,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }

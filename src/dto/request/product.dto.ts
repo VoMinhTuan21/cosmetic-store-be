@@ -135,3 +135,53 @@ export class UpdateProductDTO {
   @IsMongoId()
   brand: string;
 }
+
+export class UpdateProductItemDTO {
+  @ApiProperty({
+    type: 'string',
+  })
+  @IsNumberString()
+  @IsNotEmpty()
+  price: string;
+
+  @ApiProperty({
+    type: 'string',
+  })
+  @IsNumberString()
+  @IsNotEmpty()
+  quantity: string;
+
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+  })
+  @IsOptional()
+  thumbnail: Express.Multer.File;
+
+  @ApiPropertyOptional({
+    type: 'array',
+    items: {
+      type: 'string',
+      format: 'binary',
+    },
+  })
+  @IsOptional()
+  images: Express.Multer.File[];
+
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
+  })
+  @IsMongoId({ each: true })
+  @IsOptional()
+  productConfiguration: string[];
+
+  @ApiProperty({
+    type: 'string',
+  })
+  @IsMongoId()
+  productId: string;
+}
