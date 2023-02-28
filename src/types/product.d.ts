@@ -1,4 +1,4 @@
-declare interface ICreatedProductItem {
+declare interface IProductItem {
   _id: string;
   price: number;
   quantity: number;
@@ -18,5 +18,17 @@ declare interface ICreateProduct {
   categories: {
     _id: string;
     name: string;
+  }[];
+}
+
+declare interface IProductItem {
+  _id: string;
+  price: number;
+  quantity: number;
+  thumbnail: string;
+  images: string[];
+  productConfigurations: {
+    _id: string;
+    value: string;
   }[];
 }
