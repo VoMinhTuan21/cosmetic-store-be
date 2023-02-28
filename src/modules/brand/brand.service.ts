@@ -1,3 +1,5 @@
+import { Mapper } from '@automapper/core';
+import { InjectMapper } from '@automapper/nestjs';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -13,8 +15,10 @@ import {
   ERROR_DELETE_BRAND,
   GET_BRAND_SUCCESSS,
   ERROR_GET_BRAND,
+  GET_BRANDS_SUCCESS,
+  ERROR_GET_BRANDS,
 } from '../../constances';
-import { BrandNameDTO } from '../../dto/response';
+import { BrandNameDTO, BrandResDTO } from '../../dto/response';
 import { Brand, BrandDocument } from '../../schemas';
 import {
   handleResponseFailure,
@@ -27,6 +31,7 @@ export class BrandService {
   constructor(
     @InjectModel(Brand.name) private brandModel: Model<BrandDocument>,
     private readonly cloudinaryService: CloudinaryService,
+    @InjectMapper() private readonly mapper: Mapper,
   ) {}
 
   async create(name: string, logo: Express.Multer.File) {
@@ -49,9 +54,11 @@ export class BrandService {
         logo: logoURL.public_id,
       });
 
+      newBrand.logo = await this.cloudinaryService.getImageUrl(newBrand.logo);
+
       return handleResponseSuccess({
         message: CREATE_BANRD_SUCCESS,
-        data: newBrand,
+        data: this.mapper.map(newBrand, Brand, BrandResDTO),
       });
     } catch (error) {
       console.log('error: ', error);
@@ -104,9 +111,13 @@ export class BrandService {
 
       await brandFound.save();
 
+      brandFound.logo = await this.cloudinaryService.getImageUrl(
+        brandFound.logo,
+      );
+
       return handleResponseSuccess({
         message: UPDATE_BRAND_SUCCESS,
-        data: brandFound,
+        data: this.mapper.map(brandFound, Brand, BrandResDTO),
       });
     } catch (error) {
       console.log('error: ', error);
@@ -148,6 +159,27 @@ export class BrandService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_BRAND,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getBrands() {
+    try {
+      const brands = await this.brandModel.find({});
+
+      for (const brand of brands) {
+        const logo = await this.cloudinaryService.getImageUrl(brand.logo);
+        brand.logo = logo;
+      }
+
+      return handleResponseSuccess({
+        data: this.mapper.mapArray(brands, Brand, BrandResDTO),
+        message: GET_BRANDS_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_BRANDS,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

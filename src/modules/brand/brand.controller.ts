@@ -60,4 +60,9 @@ export class BrandController {
   getListBrandName() {
     return this.brandService.getListBrandName();
   }
+
+  @Get()
+  getBrands() {
+    return this.brandService.getBrands();
+  }
 }
