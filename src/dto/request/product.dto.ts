@@ -92,6 +92,7 @@ export class CreateProductDTO {
   @Transform(({ value }) => {
     return Array.isArray(value) ? value : value.split(',');
   })
+  @IsOptional()
   @IsMongoId({ each: true })
   @ArrayMinSize(1)
   variations: string[];
