@@ -18,4 +18,9 @@ export class CategoryController {
   getLeafCategories() {
     return this.categoryService.getLeaf();
   }
+
+  @Get()
+  getParentCategories() {
+    return this.categoryService.get();
+  }
 }

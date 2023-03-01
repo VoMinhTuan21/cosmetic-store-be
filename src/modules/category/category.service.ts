@@ -1,3 +1,5 @@
+import { Mapper } from '@automapper/core';
+import { InjectMapper } from '@automapper/nestjs';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -5,21 +7,26 @@ import {
   CREATE_CATEGORY_SUCCESS,
   ERROR_CATEGORY_EXISTED,
   ERROR_CREATE_CATEGORY,
+  ERROR_GET_CATEGORIES,
   ERROR_GET_CATEGORY_LEAF,
+  GET_CATEGORIES_SUCCESS,
   GET_CATEGORY_LEAF_SUCCESS,
 } from '../../constances';
 import { CreateCategory } from '../../dto/request';
-import { CategoryLeafDTO } from '../../dto/response';
+import { CategoryLeafDTO, CategoryResDTO } from '../../dto/response';
 import { Category, CategoryDocument } from '../../schemas';
 import {
   handleResponseFailure,
   handleResponseSuccess,
 } from '../../utils/handle-response';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
+    @InjectMapper() private readonly mapper: Mapper,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async create(body: CreateCategory) {
@@ -76,6 +83,56 @@ export class CategoryService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_CATEGORY_LEAF,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getParentCategory() {
+    const categories = await this.categoryModel.find({
+      parentCategory: null,
+    });
+
+    for (const category of categories) {
+      category.icon = await this.cloudinaryService.getImageUrl(category.icon);
+    }
+
+    return this.mapper.mapArray(categories, Category, CategoryResDTO);
+  }
+
+  async getChildrenCategory(parentId: string) {
+    const categories = await this.categoryModel.find({
+      parentCategory: parentId,
+    });
+
+    return this.mapper.mapArray(categories, Category, CategoryResDTO);
+  }
+
+  async get() {
+    try {
+      const parents = await this.getParentCategory();
+      for (const parent of parents) {
+        const children = await this.getChildrenCategory(parent._id);
+        if (children.length > 0) {
+          parent.chilren = children;
+
+          for (const child of parent.chilren) {
+            const grandChildren = await this.getChildrenCategory(child._id);
+
+            if (grandChildren.length > 0) {
+              child.chilren = grandChildren;
+            }
+          }
+        }
+
+        return handleResponseSuccess({
+          data: parents,
+          message: GET_CATEGORIES_SUCCESS,
+        });
+      }
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_CATEGORIES,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

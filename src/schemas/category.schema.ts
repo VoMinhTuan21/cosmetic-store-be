@@ -16,6 +16,11 @@ export class Category {
   parentCategory: CategoryDocument | string;
 
   @Prop({
+    type: String,
+  })
+  icon: string;
+
+  @Prop({
     type: Array<ITranslate>,
   })
   name: ITranslate[];
