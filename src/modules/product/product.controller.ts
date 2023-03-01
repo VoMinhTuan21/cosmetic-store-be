@@ -126,4 +126,9 @@ export class ProductController {
     }
     return this.productService.updateProductItem(itemId, dto);
   }
+
+  @Get('/product-items')
+  getProductItems() {
+    return this.productService.getProductItems();
+  }
 }

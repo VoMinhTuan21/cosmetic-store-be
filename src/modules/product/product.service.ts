@@ -27,6 +27,8 @@ import {
   FIND_PRODUCT_ITEM_BY_ID_SUCCESS,
   ERROR_UPDATE_PRODUCT_ITEM,
   UPDATE_PRODUCT_ITEM_SUCCESS,
+  ERROR_GET_PRODUCT_ITEM,
+  GET_PRODUCT_ITEM_SUCCESS,
 } from '../../constances';
 import {
   CreateProductDTO,
@@ -36,11 +38,14 @@ import {
 } from '../../dto/request';
 import { ProductDashboardTableDTO, ProductSimPleDTO } from '../../dto/response';
 import {
+  BrandDocument,
   Product,
   ProductDocument,
   ProductItem,
   ProductItemDocument,
+  VariationOptionDocument,
 } from '../../schemas';
+import { shuffle } from '../../utils/array';
 import {
   handleResponseFailure,
   handleResponseSuccess,
@@ -630,6 +635,78 @@ export class ProductService {
       console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_UPDATE_PRODUCT_ITEM,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getProductItems() {
+    try {
+      const products = await this.productModel
+        .find()
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value',
+          },
+          select: '_id price thumbnail productConfigurations',
+        })
+        .populate('categories', '_id name')
+        .populate('brand', '_id name')
+        .select('_id name categories brand');
+
+      const productItems = [];
+      for (const prod of products) {
+        for (const productItem of prod.productItems) {
+          const prodItem = productItem as ProductItemDocument;
+          // get thumbnail url
+          prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
+            prodItem.thumbnail,
+          );
+
+          // concat name of product with variation name
+          let nameVi = '';
+          let nameEn = '';
+          prod.name.forEach((item) => {
+            if (item.language === 'en') {
+              nameEn = item.value;
+            } else {
+              nameVi = item.value;
+            }
+          });
+          for (const config of prodItem.productConfigurations) {
+            const configItem = config as VariationOptionDocument;
+            configItem.value.forEach((val) => {
+              if (val.language === 'en') {
+                nameEn += ' ' + val.value;
+              } else {
+                nameVi += ' ' + val.value;
+              }
+            });
+          }
+          productItems.push({
+            _id: prodItem._id,
+            price: prodItem.price,
+            thumbnail: prodItem.thumbnail,
+            name: [
+              { language: 'vi', value: nameVi },
+              { languare: 'en', value: nameEn },
+            ],
+            brand: (prod.brand as BrandDocument).name,
+            categories: prod.categories,
+          });
+        }
+      }
+
+      return handleResponseSuccess({
+        message: GET_PRODUCT_ITEM_SUCCESS,
+        data: shuffle(productItems),
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_PRODUCT_ITEM,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
