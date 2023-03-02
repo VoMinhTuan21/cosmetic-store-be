@@ -1,4 +1,4 @@
-import { Gender } from '../../src/constances/enum';
+import { Gender } from '../../constances/enum';
 
 export class UserBasicInfoDto {
   _id: string;
