@@ -29,14 +29,24 @@ import {
   UPDATE_PRODUCT_ITEM_SUCCESS,
   ERROR_GET_PRODUCT_ITEM,
   GET_PRODUCT_ITEM_SUCCESS,
+  GET_PRODUCT_BY_CATEGORY_SUCCESS,
+  ERROR_GET_PRODUCT_BY_CATEGORY,
+  GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
+  ERROR_GET_PRODUCT_BY_CATEGORY_AND_OPTIONS,
 } from '../../constances';
 import {
   CreateProductDTO,
   CreateProductItemDTO,
+  LoadMorePagination,
+  ProductItemsByCategoryAndOptionsDTO,
   UpdateProductDTO,
   UpdateProductItemDTO,
 } from '../../dto/request';
-import { ProductDashboardTableDTO, ProductSimPleDTO } from '../../dto/response';
+import {
+  ProductCardDTO,
+  ProductDashboardTableDTO,
+  ProductSimPleDTO,
+} from '../../dto/response';
 import {
   BrandDocument,
   Product,
@@ -50,6 +60,7 @@ import {
   handleResponseFailure,
   handleResponseSuccess,
 } from '../../utils/handle-response';
+import { CategoryService } from '../category/category.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
@@ -61,6 +72,7 @@ export class ProductService {
     private readonly productItemModel: Model<ProductItemDocument>,
     @InjectMapper() private readonly mapper: Mapper,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly categoryService: CategoryService,
   ) {}
 
   async createProductItem(dto: CreateProductItemDTO) {
@@ -640,6 +652,54 @@ export class ProductService {
     }
   }
 
+  async convertProductDocumentToProductCard(products: ProductDocument[]) {
+    const productItems: ProductCardDTO[] = [];
+    for (const prod of products) {
+      for (const productItem of prod.productItems) {
+        const prodItem = productItem as ProductItemDocument;
+        // get thumbnail url
+        prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
+          prodItem.thumbnail,
+        );
+
+        // concat name of product with variation name
+        let nameVi = '';
+        let nameEn = '';
+        prod.name.forEach((item) => {
+          if (item.language === 'en') {
+            nameEn = item.value;
+          } else {
+            nameVi = item.value;
+          }
+        });
+        for (const config of prodItem.productConfigurations) {
+          const configItem = config as VariationOptionDocument;
+          configItem.value.forEach((val) => {
+            if (val.language === 'en') {
+              nameEn += ' ' + val.value;
+            } else {
+              nameVi += ' ' + val.value;
+            }
+          });
+        }
+        productItems.push({
+          itemId: prodItem._id,
+          productId: prod._id,
+          price: prodItem.price,
+          thumbnail: prodItem.thumbnail,
+          name: [
+            { language: 'vi', value: nameVi },
+            { language: 'en', value: nameEn },
+          ],
+          brand: (prod.brand as BrandDocument).name,
+          categories: prod.categories as string[],
+        });
+      }
+    }
+
+    return productItems;
+  }
+
   async getProductItems() {
     try {
       const products = await this.productModel
@@ -652,62 +712,164 @@ export class ProductService {
           },
           select: '_id price thumbnail productConfigurations',
         })
-        .populate('categories', '_id name')
+        // .populate('categories', '_id name')
         .populate('brand', '_id name')
         .select('_id name categories brand');
 
-      const productItems = [];
-      for (const prod of products) {
-        for (const productItem of prod.productItems) {
-          const prodItem = productItem as ProductItemDocument;
-          // get thumbnail url
-          prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
-            prodItem.thumbnail,
-          );
-
-          // concat name of product with variation name
-          let nameVi = '';
-          let nameEn = '';
-          prod.name.forEach((item) => {
-            if (item.language === 'en') {
-              nameEn = item.value;
-            } else {
-              nameVi = item.value;
-            }
-          });
-          for (const config of prodItem.productConfigurations) {
-            const configItem = config as VariationOptionDocument;
-            configItem.value.forEach((val) => {
-              if (val.language === 'en') {
-                nameEn += ' ' + val.value;
-              } else {
-                nameVi += ' ' + val.value;
-              }
-            });
-          }
-          productItems.push({
-            _id: prodItem._id,
-            price: prodItem.price,
-            thumbnail: prodItem.thumbnail,
-            name: [
-              { language: 'vi', value: nameVi },
-              { languare: 'en', value: nameEn },
-            ],
-            brand: (prod.brand as BrandDocument).name,
-            categories: prod.categories,
-          });
-        }
-      }
+      const productItems = await this.convertProductDocumentToProductCard(
+        products,
+      );
 
       return handleResponseSuccess({
         message: GET_PRODUCT_ITEM_SUCCESS,
-        data: shuffle(productItems),
+        data: shuffle<ProductCardDTO>(productItems),
       });
     } catch (error) {
       console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_GET_PRODUCT_ITEM,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getProductByCategory(
+    categoryId: string,
+    previous: string[] = [],
+    limit: number,
+  ) {
+    try {
+      const ids = await this.categoryService.getListChidrenCategoryIds(
+        categoryId,
+      );
+
+      const products = await this.productModel
+        .find({
+          categories: { $in: ids },
+        })
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value',
+          },
+          match: {
+            _id: {
+              $nin: previous.map((item) => new mongoose.Types.ObjectId(item)),
+            },
+          },
+          select: '_id price thumbnail productConfigurations',
+        })
+        // .populate('categories', '_id name')
+        .populate('brand', '_id name')
+        .select('_id name categories brand');
+
+      const productItems = await this.convertProductDocumentToProductCard(
+        products,
+      );
+
+      return handleResponseSuccess({
+        data: shuffle<ProductCardDTO>(productItems).splice(0, limit),
+        message: GET_PRODUCT_BY_CATEGORY_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_PRODUCT_BY_CATEGORY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getBrandIdsByCategory(categoryId: string) {
+    const ids = await this.categoryService.getListChidrenCategoryIds(
+      categoryId,
+    );
+    const result = await this.productModel.find({
+      categories: { $in: ids },
+    });
+
+    return result.map((item) => item.brand as string);
+  }
+
+  async getProductByCategoryAndOptions(
+    categoryId: string,
+    { limit, after }: LoadMorePagination,
+    { from, to, brand, order = 'asc' }: ProductItemsByCategoryAndOptionsDTO,
+  ) {
+    try {
+      if (after === 'end') {
+        return handleResponseSuccess({
+          data: {
+            productItems: [],
+            after: 'end',
+          },
+          message: GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
+        });
+      }
+
+      const ids = await this.categoryService.getListChidrenCategoryIds(
+        categoryId,
+      );
+
+      let products = await this.productModel
+        .find({
+          categories: { $in: ids },
+        })
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value',
+          },
+          select: '_id price thumbnail productConfigurations',
+        })
+        .populate('brand', '_id name')
+        .select('_id name categories brand productItems');
+
+      if (brand) {
+        products = products.filter(
+          (item) => (item.brand as BrandDocument)._id.toString() === brand,
+        );
+      }
+
+      let productItems = await this.convertProductDocumentToProductCard(
+        products,
+      );
+
+      if (from && to) {
+        productItems = productItems.filter(
+          (item) => item.price >= from && item.price <= to,
+        );
+      }
+
+      if (order === 'desc') {
+        productItems = productItems.sort((a, b) => b.price - a.price);
+      } else {
+        productItems = productItems.sort((a, b) => a.price - b.price);
+      }
+
+      let index = productItems.findIndex(
+        (item) => item.itemId.toString() === after,
+      );
+      if (index === -1) {
+        index = 0;
+      }
+      const data = productItems.slice(index, limit + index);
+
+      return handleResponseSuccess({
+        data: {
+          productItems: data,
+          after:
+            index + limit >= productItems.length
+              ? 'end'
+              : productItems[index + limit].itemId,
+        },
+        message: GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_PRODUCT_BY_CATEGORY_AND_OPTIONS,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }

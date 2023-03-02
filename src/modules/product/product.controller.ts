@@ -20,6 +20,9 @@ import {
   CreateProductDTO,
   UpdateProductDTO,
   UpdateProductItemDTO,
+  RandomPagination,
+  ProductItemsByCategoryAndOptionsDTO,
+  LoadMorePagination,
 } from '../../dto/request';
 import { imageFileFilter } from '../../utils/image-file-filter';
 import { ValidateMongoId } from '../../utils/validate-pipe';
@@ -130,5 +133,26 @@ export class ProductController {
   @Get('/product-items')
   getProductItems() {
     return this.productService.getProductItems();
+  }
+
+  @Post('/product-items/category/:id/options?')
+  getProductItemsByCategoryWithOtherOptions(
+    @Param('id') id: string,
+    @Query() query: ProductItemsByCategoryAndOptionsDTO,
+    @Body() body: LoadMorePagination,
+  ) {
+    return this.productService.getProductByCategoryAndOptions(id, body, query);
+  }
+
+  @Post('/product-items/category/:id')
+  getProductItemsByCategory(
+    @Param('id') id: string,
+    @Body() dto: RandomPagination,
+  ) {
+    return this.productService.getProductByCategory(
+      id,
+      dto.previous,
+      dto.limit,
+    );
   }
 }

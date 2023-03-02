@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateBrandDTO {
   @ApiProperty({ type: String })
@@ -21,4 +21,13 @@ export class UpdateBrandDTO {
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
   @IsOptional()
   logo: Express.Multer.File;
+}
+
+export class GetBrandDTO {
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsMongoId()
+  category: string;
 }

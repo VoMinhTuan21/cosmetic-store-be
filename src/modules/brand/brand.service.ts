@@ -17,6 +17,8 @@ import {
   ERROR_GET_BRAND,
   GET_BRANDS_SUCCESS,
   ERROR_GET_BRANDS,
+  GET_BRANDS_BY_CATEGORY_SUCCESS,
+  ERROR_GET_BRANDS_BY_CATEGORY,
 } from '../../constances';
 import { BrandNameDTO, BrandResDTO } from '../../dto/response';
 import { Brand, BrandDocument } from '../../schemas';
@@ -25,6 +27,7 @@ import {
   handleResponseSuccess,
 } from '../../utils/handle-response';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { ProductService } from '../product/product.service';
 
 @Injectable()
 export class BrandService {
@@ -32,6 +35,7 @@ export class BrandService {
     @InjectModel(Brand.name) private brandModel: Model<BrandDocument>,
     private readonly cloudinaryService: CloudinaryService,
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly productService: ProductService,
   ) {}
 
   async create(name: string, logo: Express.Multer.File) {
@@ -180,6 +184,28 @@ export class BrandService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_BRANDS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getBrandsByCategory(categoryId: string) {
+    try {
+      const ids = await this.productService.getBrandIdsByCategory(categoryId);
+
+      const brands = await this.brandModel.find({ _id: { $in: ids } });
+
+      for (const brand of brands) {
+        brand.logo = await this.cloudinaryService.getImageUrl(brand.logo);
+      }
+
+      return handleResponseSuccess({
+        data: this.mapper.mapArray(brands, Brand, BrandResDTO),
+        message: GET_BRANDS_BY_CATEGORY_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_BRANDS_BY_CATEGORY,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

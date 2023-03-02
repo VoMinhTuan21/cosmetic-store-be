@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CreateCategory } from '../../dto/request';
 import { CategoryService } from './category.service';
@@ -22,5 +22,10 @@ export class CategoryController {
   @Get()
   getParentCategories() {
     return this.categoryService.get();
+  }
+
+  @Get('/:id')
+  getlistId(@Param('id') id: string) {
+    return this.categoryService.getListChidrenCategoryIds(id);
   }
 }

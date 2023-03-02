@@ -2,7 +2,7 @@ import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import {
   CREATE_CATEGORY_SUCCESS,
   ERROR_CATEGORY_EXISTED,
@@ -114,27 +114,49 @@ export class CategoryService {
       for (const parent of parents) {
         const children = await this.getChildrenCategory(parent._id);
         if (children.length > 0) {
-          parent.chilren = children;
+          parent.children = children;
 
-          for (const child of parent.chilren) {
+          for (const child of parent.children) {
             const grandChildren = await this.getChildrenCategory(child._id);
 
             if (grandChildren.length > 0) {
-              child.chilren = grandChildren;
+              child.children = grandChildren;
             }
           }
         }
-
-        return handleResponseSuccess({
-          data: parents,
-          message: GET_CATEGORIES_SUCCESS,
-        });
       }
+
+      return handleResponseSuccess({
+        data: parents,
+        message: GET_CATEGORIES_SUCCESS,
+      });
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_CATEGORIES,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
+  }
+
+  async getListChidrenCategoryIds(parentId: string) {
+    const result: string[] = [];
+
+    const children = await this.getChildrenCategory(parentId);
+    if (children.length <= 0) {
+      return [parentId];
+    }
+
+    for (const child of children) {
+      const grandChildren = await this.getChildrenCategory(child._id);
+      if (grandChildren.length > 0) {
+        for (const grandChild of grandChildren) {
+          result.push(grandChild._id);
+        }
+      } else {
+        result.push(child._id);
+      }
+    }
+
+    return result;
   }
 }

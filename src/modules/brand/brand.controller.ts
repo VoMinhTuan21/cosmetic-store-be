@@ -6,12 +6,17 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { CreateBrandDTO, UpdateBrandDTO } from '../../dto/request';
+import {
+  CreateBrandDTO,
+  GetBrandDTO as GetBrandsDTO,
+  UpdateBrandDTO,
+} from '../../dto/request';
 import { imageFileFilter } from '../../utils/image-file-filter';
 import { BrandService } from './brand.service';
 
@@ -62,7 +67,10 @@ export class BrandController {
   }
 
   @Get()
-  getBrands() {
+  getBrands(@Query() query: GetBrandsDTO) {
+    if (query.category) {
+      return this.brandService.getBrandsByCategory(query.category);
+    }
     return this.brandService.getBrands();
   }
 }

@@ -27,3 +27,13 @@ export class ProductSimPleDTO {
   categories: string[];
   brand: string;
 }
+
+export class ProductCardDTO {
+  productId: string;
+  itemId: string;
+  name: ITranslate[];
+  categories: string[];
+  thumbnail: string;
+  brand: string;
+  price: number;
+}

@@ -15,5 +15,6 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
   ],
   providers: [CategoryService, CategoryProfile],
   controllers: [CategoryController],
+  exports: [CategoryService],
 })
 export class CategoryModule {}
