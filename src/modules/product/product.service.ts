@@ -858,7 +858,7 @@ export class ProductService {
 
       return handleResponseSuccess({
         data: {
-          productItems: data,
+          data: data,
           after:
             index + limit >= productItems.length
               ? 'end'
