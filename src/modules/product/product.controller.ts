@@ -131,4 +131,12 @@ export class ProductController {
   getProductItems() {
     return this.productService.getProductItems();
   }
+
+  @Get('/product-detail/:productId/:itemId')
+  getProductItemDetail(
+    @Param('productId', ValidateMongoId) productId: string,
+    @Param('itemId', ValidateMongoId) itemId: string,
+  ) {
+    return this.productService.getProductItemDetail(productId, itemId);
+  }
 }

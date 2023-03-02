@@ -32,3 +32,12 @@ declare interface IProductItem {
     value: string;
   }[];
 }
+
+declare interface IVariationList {
+  _id: string;
+  name: ITranslate[];
+  values: {
+    _id: string;
+    value: ITranslate[];
+  }[];
+}

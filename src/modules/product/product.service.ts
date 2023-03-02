@@ -29,6 +29,8 @@ import {
   UPDATE_PRODUCT_ITEM_SUCCESS,
   ERROR_GET_PRODUCT_ITEM,
   GET_PRODUCT_ITEM_SUCCESS,
+  ERROR_GET_PRODUCT_ITEM_DETAIL,
+  GET_PRODUCT_ITEM_DETAIL_SUCCESS,
 } from '../../constances';
 import {
   CreateProductDTO,
@@ -43,6 +45,7 @@ import {
   ProductDocument,
   ProductItem,
   ProductItemDocument,
+  VariationDocument,
   VariationOptionDocument,
 } from '../../schemas';
 import { shuffle } from '../../utils/array';
@@ -707,6 +710,138 @@ export class ProductService {
       console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_GET_PRODUCT_ITEM,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async extractProducItem(product: ProductDocument) {
+    const productItems = [];
+    for (const productItem of product.productItems) {
+      const prodItem = productItem as ProductItemDocument;
+      // get thumbnail and images url
+      prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
+        prodItem.thumbnail,
+      );
+
+      const imgUrls: string[] = [];
+      for (const publicId of prodItem.images) {
+        const url = await this.cloudinaryService.getImageUrl(publicId);
+        imgUrls.push(url);
+      }
+
+      // concat name of product with variation name
+      let nameVi = '';
+      let nameEn = '';
+      product.name.forEach((item) => {
+        if (item.language === 'en') {
+          nameEn = item.value;
+        } else {
+          nameVi = item.value;
+        }
+      });
+      for (const config of prodItem.productConfigurations) {
+        const configItem = config as VariationOptionDocument;
+        configItem.value.forEach((val) => {
+          if (val.language === 'en') {
+            nameEn += ' ' + val.value;
+          } else {
+            nameVi += ' ' + val.value;
+          }
+        });
+      }
+      productItems.push({
+        _id: prodItem._id,
+        price: prodItem.price,
+        thumbnail: prodItem.thumbnail,
+        images: imgUrls,
+        name: [
+          { language: 'vi', value: nameVi },
+          { language: 'en', value: nameEn },
+        ],
+        configurations: prodItem.productConfigurations.map(
+          (config: any) => config._id,
+        ),
+      });
+    }
+
+    return productItems;
+  }
+
+  getListVariationOption(product: ProductDocument) {
+    const variationOptions: VariationOptionDocument[] = [];
+    for (const productItem of product.productItems) {
+      const prodItem = productItem as ProductItemDocument;
+      variationOptions.push(
+        ...(prodItem.productConfigurations as VariationOptionDocument[]),
+      );
+    }
+
+    const variationList: IVariationList[] = [];
+    for (const varia of product.variations) {
+      const variation = varia as VariationDocument;
+      const variationItemList: IVariationList = {
+        _id: variation._id,
+        name: variation.name,
+        values: [],
+      };
+
+      // check if variation option is belong to variation of product
+      for (const option of variationOptions) {
+        if (option.parentVariation.toString() === variation._id.toString()) {
+          const existedOption = variationItemList.values.findIndex(
+            (op) => op._id.toString() === option._id.toString(),
+          );
+          if (existedOption === -1) {
+            variationItemList.values.push({
+              _id: option._id,
+              value: option.value,
+            });
+          }
+        }
+      }
+
+      variationList.push(variationItemList);
+    }
+
+    return variationList;
+  }
+
+  async getProductItemDetail(productId: string, itemId: string) {
+    try {
+      const product = await this.productModel
+        .findById(productId, '-categories')
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value parentVariation',
+          },
+          select: '-quantity',
+        })
+        .populate('brand', 'name')
+        .populate('variations', 'name');
+
+      const productItems = await this.extractProducItem(product);
+
+      const variationList = this.getListVariationOption(product);
+
+      return handleResponseSuccess({
+        message: GET_PRODUCT_ITEM_DETAIL_SUCCESS,
+        data: {
+          productItems,
+          variationList,
+          productInfo: {
+            descriptions: product.description,
+            rating: product.rating,
+            commemts: product.comments,
+          },
+        },
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_PRODUCT_ITEM_DETAIL,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
