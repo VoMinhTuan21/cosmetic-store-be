@@ -1,5 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, validate } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import {
+  IsEnum,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  validate,
+} from 'class-validator';
 import { Language } from '../../constances/enum';
 
 export class Translation {
@@ -23,4 +32,36 @@ export class TranslationV2 {
   @IsString()
   @IsNotEmpty()
   en: string;
+}
+
+export class RandomPagination {
+  @ApiPropertyOptional({
+    type: [String],
+  })
+  @IsMongoId({ each: true })
+  @IsOptional()
+  previous: string[];
+
+  @ApiProperty({
+    type: String,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  limit: number;
+}
+
+export class LoadMorePagination {
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsMongoId()
+  after: string;
+
+  @ApiProperty({
+    type: String,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  limit: number;
 }

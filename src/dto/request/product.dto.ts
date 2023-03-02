@@ -7,8 +7,10 @@ import {
   IsNumber,
   IsNumberString,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
+import mongoose from 'mongoose';
 import { Translation } from './common.dto';
 
 export class CreateProductItemDTO {
@@ -185,4 +187,37 @@ export class UpdateProductItemDTO {
   })
   @IsMongoId()
   productId: string;
+}
+
+export class ProductItemsByCategoryAndOptionsDTO {
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  from: number;
+
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  to: number;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['asc', 'desc'],
+  })
+  @IsOptional()
+  @IsString()
+  order: 'asc' | 'desc';
+
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsMongoId()
+  brand: string;
 }

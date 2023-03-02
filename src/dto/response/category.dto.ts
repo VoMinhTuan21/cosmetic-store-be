@@ -4,6 +4,6 @@ export class CategoryLeafDTO {
 }
 
 export class CategoryResDTO extends CategoryLeafDTO {
-  chilren?: CategoryResDTO[];
+  children?: CategoryResDTO[];
   icon?: string;
 }

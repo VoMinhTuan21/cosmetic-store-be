@@ -10,6 +10,7 @@ import {
 } from '../../schemas';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { ProductProfile } from './product.profile';
+import { CategoryModule } from '../category/category.module';
 
 @Module({
   imports: [
@@ -18,8 +19,10 @@ import { ProductProfile } from './product.profile';
       { name: ProductItem.name, schema: ProductItemSchema },
     ]),
     CloudinaryModule,
+    CategoryModule,
   ],
   providers: [ProductService, ProductProfile],
   controllers: [ProductController],
+  exports: [ProductService],
 })
 export class ProductModule {}
