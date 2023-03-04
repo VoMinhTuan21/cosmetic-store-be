@@ -194,18 +194,20 @@ export class AuthService {
   async signIn(data: SignInDTO) {
     try {
       const user = await this.userService.signIn(data);
-      return handleResponseSuccess({
-        data: {
-          token: await this.signJWTToken(
-            user._id,
-            user.email,
-            user.email,
-            data.rememberMe,
-          ),
-          user: this.mapper.map(user, User, UserBasicInfoDto),
-        },
-        message: SIGN_IN_SUCCESS,
-      });
+      if (user) {
+        return handleResponseSuccess({
+          data: {
+            token: await this.signJWTToken(
+              user._id,
+              user.email,
+              user.email,
+              data.rememberMe,
+            ),
+            user: this.mapper.map(user, User, UserBasicInfoDto),
+          },
+          message: SIGN_IN_SUCCESS,
+        });
+      }
     } catch (error) {
       console.log('error: ', error);
       return handleResponseFailure({
