@@ -50,3 +50,12 @@ export class ChangePassDTO {
   @NotMatch('oldPass')
   newPass: string;
 }
+
+export class CreatePassDTO {
+  @ApiProperty({
+    type: String,
+  })
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+}
