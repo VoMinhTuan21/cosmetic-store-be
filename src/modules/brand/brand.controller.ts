@@ -70,6 +70,8 @@ export class BrandController {
   getBrands(@Query() query: GetBrandsDTO) {
     if (query.category) {
       return this.brandService.getBrandsByCategory(query.category);
+    } else if (query.search) {
+      return this.brandService.getBrandBySearchKey(query.search);
     }
     return this.brandService.getBrands();
   }

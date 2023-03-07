@@ -221,3 +221,11 @@ export class ProductItemsByCategoryAndOptionsDTO {
   @IsMongoId()
   brand: string;
 }
+
+export class SearchProductDTO extends ProductItemsByCategoryAndOptionsDTO {
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  search: string;
+}

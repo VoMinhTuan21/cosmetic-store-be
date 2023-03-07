@@ -35,6 +35,8 @@ import {
   ERROR_GET_PRODUCT_BY_CATEGORY,
   GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
   ERROR_GET_PRODUCT_BY_CATEGORY_AND_OPTIONS,
+  SEARCH_PRODUCT_SUCCESS,
+  ERROR_SEARCH_PRODUCT,
 } from '../../constances';
 import {
   CreateProductDTO,
@@ -926,6 +928,14 @@ export class ProductService {
     return result.map((item) => item.brand as string);
   }
 
+  async getBrandIdsBySearchKey(search: string) {
+    const result = await this.productModel.find({
+      'name.value': { $regex: search, $options: 'i' },
+    });
+
+    return result.map((item) => item.brand as string);
+  }
+
   async getProductByCategoryAndOptions(
     categoryId: string,
     { limit, after }: LoadMorePagination,
@@ -971,7 +981,7 @@ export class ProductService {
         products,
       );
 
-      if (from && to) {
+      if (from >= 0 && to >= 0) {
         productItems = productItems.filter(
           (item) => item.price >= from && item.price <= to,
         );
@@ -1004,6 +1014,85 @@ export class ProductService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_PRODUCT_BY_CATEGORY_AND_OPTIONS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async search(
+    query: string,
+    { limit, after }: LoadMorePagination,
+    { from, to, brand, order = 'asc' }: ProductItemsByCategoryAndOptionsDTO,
+  ) {
+    try {
+      if (after === 'end') {
+        return handleResponseSuccess({
+          data: {
+            productItems: [],
+            after: 'end',
+          },
+          message: GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
+        });
+      }
+
+      let products = await this.productModel
+        .find({
+          'name.value': { $regex: query, $options: 'i' },
+        })
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value',
+          },
+          select: '_id price thumbnail productConfigurations',
+        })
+        .populate('brand', '_id name')
+        .select('_id name categories brand productItems');
+
+      if (brand) {
+        products = products.filter(
+          (item) => (item.brand as BrandDocument)._id.toString() === brand,
+        );
+      }
+
+      let productItems = await this.convertProductDocumentToProductCard(
+        products,
+      );
+
+      if (from >= 0 && to >= 0) {
+        productItems = productItems.filter(
+          (item) => item.price >= from && item.price <= to,
+        );
+      }
+
+      if (order === 'desc') {
+        productItems = productItems.sort((a, b) => b.price - a.price);
+      } else {
+        productItems = productItems.sort((a, b) => a.price - b.price);
+      }
+
+      let index = productItems.findIndex(
+        (item) => item.itemId.toString() === after,
+      );
+      if (index === -1) {
+        index = 0;
+      }
+      const data = productItems.slice(index, limit + index);
+
+      return handleResponseSuccess({
+        data: {
+          data: data,
+          after:
+            index + limit >= productItems.length
+              ? 'end'
+              : productItems[index + limit].itemId,
+        },
+        message: SEARCH_PRODUCT_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_SEARCH_PRODUCT,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

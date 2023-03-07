@@ -210,4 +210,26 @@ export class BrandService {
       });
     }
   }
+
+  async getBrandBySearchKey(search: string) {
+    try {
+      const ids = await this.productService.getBrandIdsBySearchKey(search);
+
+      const brands = await this.brandModel.find({ _id: { $in: ids } });
+
+      for (const brand of brands) {
+        brand.logo = await this.cloudinaryService.getImageUrl(brand.logo);
+      }
+
+      return handleResponseSuccess({
+        data: this.mapper.mapArray(brands, Brand, BrandResDTO),
+        message: GET_BRANDS_BY_CATEGORY_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_BRANDS_BY_CATEGORY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
 }

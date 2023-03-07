@@ -30,4 +30,10 @@ export class GetBrandDTO {
   @IsOptional()
   @IsMongoId()
   category: string;
+
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  search: string;
 }

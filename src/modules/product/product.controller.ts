@@ -23,6 +23,7 @@ import {
   RandomPagination,
   ProductItemsByCategoryAndOptionsDTO,
   LoadMorePagination,
+  SearchProductDTO,
 } from '../../dto/request';
 import { imageFileFilter } from '../../utils/image-file-filter';
 import { ValidateMongoId } from '../../utils/validate-pipe';
@@ -162,5 +163,10 @@ export class ProductController {
       dto.previous,
       dto.limit,
     );
+  }
+
+  @Post('/search')
+  search(@Query() query: SearchProductDTO, @Body() body: LoadMorePagination) {
+    return this.productService.search(query.search, body, query);
   }
 }

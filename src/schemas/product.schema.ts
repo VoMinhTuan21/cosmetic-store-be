@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
-import { Gender } from '../constances/enum';
 import { BrandDocument } from './brand.schema';
 import { CategoryDocument } from './category.schema';
 import { CommentDocument } from './comment.schema';
@@ -69,4 +68,8 @@ export class Product {
   brand: BrandDocument | string;
 }
 
-export const ProductSchema = SchemaFactory.createForClass(Product);
+const ProductSchema = SchemaFactory.createForClass(Product);
+
+ProductSchema.index({ 'name.value': 'text', 'description.value': 'text' });
+
+export { ProductSchema };
