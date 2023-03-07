@@ -5,6 +5,7 @@ import {
   IsMongoId,
   IsNotEmpty,
   IsNumber,
+  IsNumberString,
   IsOptional,
   IsString,
   validate,
@@ -64,4 +65,20 @@ export class LoadMorePagination {
   @IsNumber()
   @Transform(({ value }) => parseInt(value))
   limit: number;
+}
+
+export class Coordinates {
+  @ApiProperty({
+    type: String,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
+  latitude: number;
+
+  @ApiProperty({
+    type: String,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
+  longitude: number;
 }

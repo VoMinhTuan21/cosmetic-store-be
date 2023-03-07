@@ -136,16 +136,16 @@ export class SignUpWithPassword {
 }
 
 export class SignInDTO {
-  @ApiProperty()
+  @ApiProperty({ default: 'vominhtuan.8a1@gmail.com' })
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ default: 'Vominhtuan!123' })
   @IsNotEmpty()
   password: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ default: false })
   @IsBoolean()
   rememberMe?: boolean;
 }

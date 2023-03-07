@@ -4,10 +4,18 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
+  CHANGE_DEFAULT_ADDRESS_SUCCESS,
   CHANGE_PASS_SUCCESS,
+  CREATE_ADDRESS_SUCCESS,
+  DELETE_ADDRESS_SUCCESS,
+  ERROR_ADDRESS_NOT_FOUND,
+  ERROR_CHANGE_DEFAULT_ADDRESS,
   CHECK_USER_HAS_PASS_SUCCESS,
   CREATE_PASSWORD_SUCCESS,
   ERROR_CHANGE_PASS,
+  ERROR_CREATE_ADDRESS,
+  ERROR_DELETE_ADDRESS,
+  ERROR_DO_NOT_DELETE_DEFAULT_ADDREESS,
   ERROR_CHECK_USER_HAS_PASS,
   ERROR_CREATE_PASSWORD,
   ERROR_EMAIL_HAS_BEEN_USED,
@@ -15,16 +23,26 @@ import {
   ERROR_PASSWORD_NOT_MATCH,
   ERROR_SIGN_IN,
   ERROR_SIGN_UP,
+  ERROR_UPDATE_ADDRESS,
   ERROR_UPDATE_USER,
   ERROR_USER_NOT_EXIST,
   GET_USER_BY_EMAIL_SUCCESS,
   UPDATE_USER_SUCCESS,
+  ERROR_GET_ADDRESSES,
+  GET_ADDRESSES_SUCCESS,
+  UPDATE_ADDRESS_SUCCESS,
 } from '../../constances';
 
-import { DefaultUser, SignUpWithPassword, SignInDTO } from '../../dto/request';
-import { ChangePassDTO, UpdateUserDTO } from '../../dto/request/user.dto';
-import { UserBasicInfoDto } from '../../dto/response';
-import { User, UserDocument } from '../../schemas';
+import {
+  DefaultUser,
+  SignUpWithPassword,
+  SignInDTO,
+  UpdateUserDTO,
+  ChangePassDTO,
+  AddressDTO,
+} from '../../dto/request';
+import { AddressResDTO, UserBasicInfoDto } from '../../dto/response';
+import { Address, AddressDocument, User, UserDocument } from '../../schemas';
 import {
   handleResponseFailure,
   handleResponseSuccess,
@@ -35,6 +53,7 @@ import { hashPasswords, comparePassword } from '../../utils/hash-password';
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Address.name) private addressModel: Model<AddressDocument>,
     @InjectMapper() private readonly mapper: Mapper,
   ) {}
 
@@ -238,6 +257,147 @@ export class UserService {
       return handleResponseFailure({
         error: ERROR_CREATE_PASSWORD,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async createAddress(userId: string, dto: AddressDTO) {
+    try {
+      const newAddress = await this.addressModel.create({
+        name: dto.name,
+        phone: dto.phone,
+        province: dto.province,
+        district: dto.district,
+        ward: dto.ward,
+        specificAddress: dto.specificAddress,
+        coordinates: dto.coordinates,
+      });
+
+      await this.userModel.findByIdAndUpdate(userId, {
+        $push: {
+          addresses: newAddress._id,
+        },
+      });
+
+      return handleResponseSuccess({
+        message: CREATE_ADDRESS_SUCCESS,
+        data: this.mapper.map(newAddress, Address, AddressResDTO),
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_CREATE_ADDRESS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateAddress(addressId: string, dto: AddressDTO) {
+    try {
+      const updatedAddress = await this.addressModel.findByIdAndUpdate(
+        addressId,
+        { ...dto },
+        {
+          new: true,
+        },
+      );
+
+      return handleResponseSuccess({
+        message: UPDATE_ADDRESS_SUCCESS,
+        data: this.mapper.map(updatedAddress, Address, AddressResDTO),
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_UPDATE_ADDRESS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async changeDefaultAddress(userId: string, addressId: string) {
+    try {
+      // change another address become default = fasle if it is true before
+      const user = await this.userModel.findById(userId, 'addresses');
+      let addressIds: string[] = user.addresses as string[];
+      addressIds = addressIds.filter((item) => item !== addressId);
+
+      for (const id of addressIds) {
+        const address = await this.addressModel.findById(id);
+        if (address.default === true) {
+          address.default = false;
+          await address.save();
+        }
+      }
+
+      // change the specific address default to true
+      await this.addressModel.findByIdAndUpdate(addressId, {
+        default: true,
+      });
+
+      return handleResponseSuccess({
+        message: CHANGE_DEFAULT_ADDRESS_SUCCESS,
+        data: addressId,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_CHANGE_DEFAULT_ADDRESS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async deleteAdderss(userId: string, addressId: string) {
+    try {
+      const address = await this.addressModel.findById(addressId);
+      if (address.default === true) {
+        return handleResponseFailure({
+          error: ERROR_DO_NOT_DELETE_DEFAULT_ADDREESS,
+          statusCode: HttpStatus.BAD_REQUEST,
+        });
+      }
+      await address.delete();
+
+      await this.userModel.findByIdAndUpdate(userId, {
+        $pull: {
+          addresses: addressId,
+        },
+      });
+
+      return handleResponseSuccess({
+        message: DELETE_ADDRESS_SUCCESS,
+        data: addressId,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_DELETE_ADDRESS,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getAddresses(userId: string) {
+    try {
+      const user = await this.userModel
+        .findById(userId, 'addresses')
+        .populate(
+          'addresses',
+          'name phone province district ward specificAddress coordinates default',
+        );
+
+      if (!user) {
+        return handleResponseFailure({
+          error: ERROR_USER_NOT_EXIST,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      return handleResponseSuccess({
+        message: GET_ADDRESSES_SUCCESS,
+        data: user.addresses,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_ADDRESSES,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }
