@@ -1,10 +1,20 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose from 'mongoose';
-import { Gender } from '../constances/enum';
 
 export type AddressDocument = Address & Document;
 
-@Schema()
+@Schema({ _id: false })
+class Coordinates {
+  @Prop({ type: Number })
+  latitude: number;
+  @Prop({ type: Number })
+  longitude: number;
+}
+
+const CoordinatesSchema = SchemaFactory.createForClass(Coordinates);
+
+@Schema({
+  timestamps: true,
+})
 export class Address {
   _id: string;
 
@@ -39,7 +49,13 @@ export class Address {
   specificAddress: string;
 
   @Prop({
+    type: CoordinatesSchema,
+  })
+  coordinates: ICoordinates;
+
+  @Prop({
     type: Boolean,
+    default: false,
   })
   default: boolean;
 }
