@@ -73,6 +73,10 @@ export class UserProfile extends AutomapperProfile {
           (destination) => destination.ward,
           mapFrom((source) => source.ward),
         ),
+        forMember(
+          (destination) => destination.default,
+          mapFrom((source) => source.default),
+        ),
       );
     };
   }

@@ -28,6 +28,9 @@ import {
   ERROR_USER_NOT_EXIST,
   GET_USER_BY_EMAIL_SUCCESS,
   UPDATE_USER_SUCCESS,
+  ERROR_GET_ADDRESSES,
+  GET_ADDRESSES_SUCCESS,
+  UPDATE_ADDRESS_SUCCESS,
 } from '../../constances';
 
 import {
@@ -299,7 +302,7 @@ export class UserService {
       );
 
       return handleResponseSuccess({
-        message: CREATE_ADDRESS_SUCCESS,
+        message: UPDATE_ADDRESS_SUCCESS,
         data: this.mapper.map(updatedAddress, Address, AddressResDTO),
       });
     } catch (error) {
@@ -366,6 +369,34 @@ export class UserService {
     } catch (error) {
       return handleResponseFailure({
         error: error.response?.error || ERROR_DELETE_ADDRESS,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getAddresses(userId: string) {
+    try {
+      const user = await this.userModel
+        .findById(userId, 'addresses')
+        .populate(
+          'addresses',
+          'name phone province district ward specificAddress coordinates default',
+        );
+
+      if (!user) {
+        return handleResponseFailure({
+          error: ERROR_USER_NOT_EXIST,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      return handleResponseSuccess({
+        message: GET_ADDRESSES_SUCCESS,
+        data: user.addresses,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_ADDRESSES,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
