@@ -10,10 +10,14 @@ import {
   DELETE_ADDRESS_SUCCESS,
   ERROR_ADDRESS_NOT_FOUND,
   ERROR_CHANGE_DEFAULT_ADDRESS,
+  CHECK_USER_HAS_PASS_SUCCESS,
+  CREATE_PASSWORD_SUCCESS,
   ERROR_CHANGE_PASS,
   ERROR_CREATE_ADDRESS,
   ERROR_DELETE_ADDRESS,
   ERROR_DO_NOT_DELETE_DEFAULT_ADDREESS,
+  ERROR_CHECK_USER_HAS_PASS,
+  ERROR_CREATE_PASSWORD,
   ERROR_EMAIL_HAS_BEEN_USED,
   ERROR_GET_USER_BY_EMAIL,
   ERROR_PASSWORD_NOT_MATCH,
@@ -52,6 +56,19 @@ export class UserService {
 
   async findUserByEmail(email: string): Promise<IJWTInfo | null> {
     const user = await this.userModel.findOne({ email: email });
+    if (user) {
+      return {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      };
+    }
+
+    return null;
+  }
+
+  async findUserById(id: string): Promise<IJWTInfo | null> {
+    const user = await this.userModel.findById(id);
     if (user) {
       return {
         _id: user._id,
@@ -200,6 +217,43 @@ export class UserService {
       return handleResponseFailure({
         error: error.response?.error || ERROR_CHANGE_PASS,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async checkUserHasPass(id: string) {
+    try {
+      const user = await this.userModel.findById(id);
+
+      return handleResponseSuccess({
+        data: user.password ? true : false,
+        message: CHECK_USER_HAS_PASS_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_CHECK_USER_HAS_PASS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async createPass(id: string, password: string) {
+    try {
+      const user = await this.userModel.findById(id);
+
+      const hash = hashPasswords(password);
+
+      user.password = hash;
+      await user.save();
+
+      return handleResponseSuccess({
+        data: CREATE_PASSWORD_SUCCESS,
+        message: CREATE_PASSWORD_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_CREATE_PASSWORD,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }

@@ -1,11 +1,14 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import {
   SignInDTO,
   SignInWithSocialMediaDTO,
   SignUpWithPassword,
   sendMailOTP,
 } from '../../dto/request';
+import { JwtGuard } from '../../guards/jwt.guard';
+import { handleResponseSuccess } from '../../utils/handle-response';
 import { AuthService } from './auth.service';
 
 @ApiTags('Auth')
@@ -31,5 +34,27 @@ export class AuthController {
   @Post('/send-mail-otp')
   sendMailOTP(@Body() data: sendMailOTP) {
     return this.authService.sendMailOTP(data.email);
+  }
+
+  @ApiBearerAuth('access_token')
+  @UseGuards(JwtGuard)
+  @Get('/check-status-social-account')
+  checkStatusWithSocialAccount(@Req() req: Request) {
+    return this.authService.checkStatusWithSocialAccount(
+      (req.user as IJWTInfo)._id,
+    );
+  }
+
+  @ApiBearerAuth('access_token')
+  @UseGuards(JwtGuard)
+  @Post('/link-social-account')
+  linkSocialAccount(
+    @Req() req: Request,
+    @Body() data: SignInWithSocialMediaDTO,
+  ) {
+    return this.authService.linkSocialAccount(
+      (req.user as IJWTInfo).email,
+      data,
+    );
   }
 }

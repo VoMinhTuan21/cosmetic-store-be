@@ -118,3 +118,12 @@ export class AddressDTO {
   @Type(() => Coordinates)
   coordinates: Coordinates;
 }
+
+export class CreatePassDTO {
+  @ApiProperty({
+    type: String,
+  })
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+}
