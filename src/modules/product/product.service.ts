@@ -1175,7 +1175,7 @@ export class ProductService {
       );
 
       return handleResponseSuccess({
-        data: productItems,
+        data: shuffle(productItems),
         message: GET_RECOMMEND_CF_SUCCESS,
       });
     } catch (error) {
