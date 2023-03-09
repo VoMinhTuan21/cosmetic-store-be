@@ -31,6 +31,10 @@ declare interface IProductItem {
     _id: string;
     value: string;
   }[];
+  tags: {
+    _id: string;
+    name: string;
+  }[];
 }
 
 declare interface IVariationList {

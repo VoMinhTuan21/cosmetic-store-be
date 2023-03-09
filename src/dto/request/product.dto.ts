@@ -54,6 +54,17 @@ export class CreateProductItemDTO {
   @IsOptional()
   productConfiguration: string[];
 
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
+  })
+  @IsMongoId({ each: true })
+  @IsOptional()
+  tags: string[];
+
   @ApiProperty({
     type: 'string',
   })
@@ -181,6 +192,17 @@ export class UpdateProductItemDTO {
   @IsMongoId({ each: true })
   @IsOptional()
   productConfiguration: string[];
+
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
+  })
+  @IsMongoId({ each: true })
+  @IsOptional()
+  tags: string[];
 
   @ApiProperty({
     type: 'string',

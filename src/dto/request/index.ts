@@ -6,3 +6,4 @@ export * from './product.dto';
 export * from './variant.dto';
 export * from './brand.dto';
 export * from './user.dto';
+export * from './tag.dto';

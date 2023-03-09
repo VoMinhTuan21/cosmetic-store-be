@@ -118,6 +118,7 @@ export class ProductService {
         thumbnail: thumbnail.public_id,
         images: images,
         productConfigurations: dto.productConfiguration,
+        tags: dto.tags,
       });
 
       await this.productModel.findOneAndUpdate(
@@ -152,11 +153,28 @@ export class ProductService {
           },
         },
         {
+          $lookup: {
+            from: 'tags',
+            foreignField: '_id',
+            localField: 'tags',
+            as: 'tags',
+            pipeline: [
+              {
+                $project: {
+                  _id: 1,
+                  name: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
           $project: {
             _id: 1,
             price: 1,
             quantity: 1,
             productConfigurations: 1,
+            tags: 1,
           },
         },
       ])) as IProductItem[];
@@ -542,6 +560,7 @@ export class ProductService {
             thumbnail: prodItem.thumbnail,
             images,
             productConfigurations: prodItem.productConfigurations,
+            tags: prodItem.tags,
           },
         },
       });
@@ -568,7 +587,6 @@ export class ProductService {
 
       existedProductItem.forEach((item) => {
         if (item._id.toString() !== prodItem._id.toString()) {
-          console.log('existedProductItem: ', existedProductItem);
           return handleResponseFailure({
             error: ERROR_PRODUCT_ITEM_EXISTED,
             statusCode: HttpStatus.CONFLICT,
@@ -605,6 +623,7 @@ export class ProductService {
       prodItem.price = +dto.price;
       prodItem.quantity = +dto.quantity;
       prodItem.productConfigurations = dto.productConfiguration;
+      prodItem.tags = dto.tags;
       await prodItem.save();
 
       const updatedItem = (await this.productItemModel.aggregate([
@@ -632,11 +651,28 @@ export class ProductService {
           },
         },
         {
+          $lookup: {
+            from: 'tags',
+            foreignField: '_id',
+            localField: 'tags',
+            as: 'tags',
+            pipeline: [
+              {
+                $project: {
+                  _id: 1,
+                  name: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
           $project: {
             _id: 1,
             price: 1,
             quantity: 1,
             productConfigurations: 1,
+            tags: 1,
           },
         },
       ])) as IProductItem[];

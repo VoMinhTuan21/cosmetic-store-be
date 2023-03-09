@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
+import { TagDocument } from './tag.schema';
 import { VariationOptionDocument } from './variationOption.schema';
 
 export type ProductItemDocument = ProductItem &
@@ -41,6 +42,14 @@ export class ProductItem {
     },
   ])
   productConfigurations: VariationOptionDocument[] | string[];
+
+  @Prop([
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tag',
+    },
+  ])
+  tags: TagDocument[] | string[];
 }
 
 export const ProductItemSchema = SchemaFactory.createForClass(ProductItem);

@@ -13,6 +13,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { BrandModule } from './modules/brand/brand.module';
 import { ProductModule } from './modules/product/product.module';
+import { TagModule } from './modules/tag/tag.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ProductModule } from './modules/product/product.module';
     CloudinaryModule,
     BrandModule,
     ProductModule,
+    TagModule,
   ],
   controllers: [],
   providers: [],
