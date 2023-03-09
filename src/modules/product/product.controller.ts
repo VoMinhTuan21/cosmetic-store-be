@@ -169,4 +169,9 @@ export class ProductController {
   search(@Query() query: SearchProductDTO, @Body() body: LoadMorePagination) {
     return this.productService.search(query.search, body, query);
   }
+
+  @Get('/recommend/cf/:id')
+  getRecommendCF(@Param('id') id: string) {
+    return this.productService.recommendCF(id);
+  }
 }

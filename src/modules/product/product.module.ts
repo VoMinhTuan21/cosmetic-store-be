@@ -11,6 +11,7 @@ import {
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { ProductProfile } from './product.profile';
 import { CategoryModule } from '../category/category.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CategoryModule } from '../category/category.module';
     ]),
     CloudinaryModule,
     CategoryModule,
+    HttpModule,
   ],
   providers: [ProductService, ProductProfile],
   controllers: [ProductController],

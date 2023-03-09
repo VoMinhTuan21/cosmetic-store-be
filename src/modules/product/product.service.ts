@@ -1,6 +1,8 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
+import { HttpService } from '@nestjs/axios';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import { pipeline } from 'stream';
@@ -37,6 +39,8 @@ import {
   ERROR_GET_PRODUCT_BY_CATEGORY_AND_OPTIONS,
   SEARCH_PRODUCT_SUCCESS,
   ERROR_SEARCH_PRODUCT,
+  GET_RECOMMEND_CF_SUCCESS,
+  ERROR_GET_RECOMMEND_CF,
 } from '../../constances';
 import {
   CreateProductDTO,
@@ -78,6 +82,8 @@ export class ProductService {
     @InjectMapper() private readonly mapper: Mapper,
     private readonly cloudinaryService: CloudinaryService,
     private readonly categoryService: CategoryService,
+    private readonly httpService: HttpService,
+    private readonly config: ConfigService,
   ) {}
 
   async createProductItem(dto: CreateProductItemDTO) {
@@ -1129,6 +1135,53 @@ export class ProductService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_SEARCH_PRODUCT,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async recommendCF(id: string) {
+    try {
+      const { data } = await this.httpService.axiosRef.get<string[]>(
+        `${this.config.get('RECOMMEND_URL')}/product-item/recommend/${id}`,
+      );
+
+      const products = await this.productModel
+        .find({
+          productItems: {
+            $elemMatch: {
+              $in: data.map((item) => new mongoose.Types.ObjectId(item)),
+            },
+          },
+        })
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value',
+          },
+          match: {
+            _id: {
+              $in: data.map((item) => new mongoose.Types.ObjectId(item)),
+            },
+          },
+          select: '_id price thumbnail productConfigurations',
+        })
+        .populate('brand', '_id name')
+        .select('_id name categories brand');
+
+      const productItems = await this.convertProductDocumentToProductCard(
+        products,
+      );
+
+      return handleResponseSuccess({
+        data: productItems,
+        message: GET_RECOMMEND_CF_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_GET_RECOMMEND_CF,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
