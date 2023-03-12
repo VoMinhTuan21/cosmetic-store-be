@@ -13,6 +13,11 @@ export class Tag {
     type: String,
   })
   name: string;
+
+  @Prop({
+    type: Number,
+  })
+  weight: number;
 }
 
 export const TagSchema = SchemaFactory.createForClass(Tag);

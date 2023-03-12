@@ -42,7 +42,10 @@ export class TagService {
         });
       }
 
-      const newTag = await this.tagModel.create({ name: dto.name });
+      const newTag = await this.tagModel.create({
+        name: dto.name,
+        weight: dto.weight,
+      });
 
       return handleResponseSuccess({
         data: this.mapper.map(newTag, Tag, TagResDTO),
@@ -68,6 +71,7 @@ export class TagService {
       }
 
       tag.name = dto.name;
+      tag.weight = dto.weight;
       await tag.save();
 
       return handleResponseSuccess({

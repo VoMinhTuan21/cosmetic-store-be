@@ -1,8 +1,20 @@
-import { ApiProperty, PickType } from '@nestjs/swagger';
-import { IsMongoId, IsNotEmpty } from 'class-validator';
-import { CreateBrandDTO } from './brand.dto';
+import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsMongoId, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class CreateTagDTO extends PickType(CreateBrandDTO, ['name'] as const) {}
+export class CreateTagDTO {
+  @ApiProperty({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({
+    type: String,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  weight: number;
+}
 
 export class UpdateTagDTO extends CreateTagDTO {
   @ApiProperty({ type: String })

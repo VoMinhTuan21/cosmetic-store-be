@@ -1174,12 +1174,22 @@ export class ProductService {
         products,
       );
 
+      const recommdedProdItems: ProductCardDTO[] = [];
+      for (let i = 0; i < data.length; i++) {
+        const prodItemId = data[i];
+        const item = productItems.find(
+          (prod) => prod.itemId.toString() === prodItemId,
+        );
+        if (item) {
+          recommdedProdItems.push(item);
+        }
+      }
+
       return handleResponseSuccess({
-        data: shuffle(productItems),
+        data: recommdedProdItems,
         message: GET_RECOMMEND_CF_SUCCESS,
       });
     } catch (error) {
-      console.log('error: ', error);
       return handleResponseFailure({
         error: ERROR_GET_RECOMMEND_CF,
         statusCode: HttpStatus.BAD_REQUEST,

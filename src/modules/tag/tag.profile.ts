@@ -24,6 +24,10 @@ export class TagProfile extends AutomapperProfile {
           (destination) => destination.name,
           mapFrom((source) => source.name),
         ),
+        forMember(
+          (destination) => destination.weight,
+          mapFrom((source) => source.weight),
+        ),
       );
     };
   }
