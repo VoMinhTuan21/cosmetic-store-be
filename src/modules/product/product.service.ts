@@ -1196,4 +1196,18 @@ export class ProductService {
       });
     }
   }
+
+  async checkEnoughQuantity(id: string, qty: number) {
+    const item = await this.productItemModel.findById(id);
+
+    return item.quantity >= qty ? true : false;
+  }
+
+  async subtractQuantity(id: string, qty: number) {
+    const item = await this.productItemModel.findById(id);
+
+    item.quantity -= qty;
+
+    await item.save();
+  }
 }
