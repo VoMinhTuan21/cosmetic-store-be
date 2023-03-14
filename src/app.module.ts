@@ -14,6 +14,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { BrandModule } from './modules/brand/brand.module';
 import { ProductModule } from './modules/product/product.module';
 import { TagModule } from './modules/tag/tag.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { TagModule } from './modules/tag/tag.module';
     BrandModule,
     ProductModule,
     TagModule,
+    OrderModule,
   ],
   controllers: [],
   providers: [],
