@@ -1,10 +1,19 @@
-import { Body, Controller, Req, UseGuards, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Req,
+  UseGuards,
+  Get,
+  Post,
+  Param,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateOrderDTO } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { Request } from 'express';
 import { MomoPaymentDTO, SignatureDTO } from '../../dto/request';
 import { OrderService } from './order.service';
+import { ValidateMongoId } from '../../utils/validate-pipe';
 
 @ApiTags('Order')
 @ApiTags('Order')
@@ -17,9 +26,9 @@ export class OrderController {
     return this.orderService.confirmPayWithmomo(body);
   }
 
-  @Get('/payment/momo')
-  requestPaymentMomo() {
-    return this.orderService.paymentWithMomo();
+  @Get('/:orderId')
+  checkOrder(@Param('orderId', ValidateMongoId) orderId: string) {
+    return this.orderService.checkOrder(orderId);
   }
 
   @ApiBearerAuth('access_token')

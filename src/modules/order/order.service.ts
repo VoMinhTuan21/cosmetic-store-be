@@ -7,11 +7,16 @@ import { MomoPaymentDTO } from '../../dto/request';
 import { MomoPaymentRes } from '../../dto/response/order.dto';
 import {
   CREATE_ORDER_SUCCESS,
+  USER_REJECT_PAY_WITH_MOMO,
   ERROR_CREATE_ORDER,
   ERROR_CREATE_ORDER_ITEM,
+  ERROR_MAKE_PAYMENT_WITH_MOMO,
   ERROR_NOT_ENOUGH_QUANTITY_FOR_,
+  PAYMENT_WITH_MOMO_SUCCESS,
+  ERROR_CHECK_ORDER,
+  CHECK_ORDER_SUCCESS,
 } from '../../constances';
-import { OrderStatus } from '../../constances/enum';
+import { OrderStatus, PaymentMethod } from '../../constances/enum';
 import { CreateOrderDTO, CreateOrderItemDTO } from '../../dto/request';
 import {
   Order,
@@ -46,19 +51,16 @@ export class OrderService {
     return signature;
   }
 
-  async paymentWithMomo() {
+  async paymentWithMomo(orderId: string, amount: string) {
     try {
       const partnerCode = this.config.get('PARTNER_CODE');
-      console.log('partnerCode: ', partnerCode);
       const accessKey = this.config.get('ACCESS_KEY');
       const secretKey = this.config.get('SECRET_KEY');
       const requestId = partnerCode + new Date().getTime();
-      const orderId = requestId;
-      const orderInfo = 'pay with MoMo';
+      const orderInfo = 'thanh toán đơn hàng Hygge với Momo';
       const redirectUrl = this.config.get('REDIRECT_URL');
-      console.log('redirectUrl: ', redirectUrl);
       const ipnUrl = this.config.get('IPN_URL');
-      const amount = '10000';
+      // const amount = '10000';
       const requestType = 'captureWallet';
       const extraData = '';
       const rawSignature =
@@ -95,7 +97,7 @@ export class OrderService {
         extraData: extraData,
         requestType: requestType,
         signature: signature,
-        lang: 'en',
+        lang: 'vi',
       });
 
       const response = await this.httpService.axiosRef.post<MomoPaymentRes>(
@@ -117,7 +119,26 @@ export class OrderService {
 
   async confirmPayWithmomo(body: MomoPaymentDTO) {
     try {
-      console.log('body: ', body);
+      if (body.resultCode !== 0) {
+        console.log('body.resultCode: ', body.resultCode);
+        const order = await this.orderModel.findByIdAndDelete(body.orderId);
+        for (let i = 0; i < order.orderItems.length; i++) {
+          const orderItem = order.orderItems[i];
+          await this.orderItemModel.findByIdAndDelete(orderItem);
+        }
+
+        return handleResponseSuccess({
+          data: body.orderId,
+          message: USER_REJECT_PAY_WITH_MOMO,
+        });
+      }
+
+      const order = await this.orderModel.findById(body.orderId);
+
+      return handleResponseSuccess({
+        data: '',
+        message: PAYMENT_WITH_MOMO_SUCCESS,
+      });
     } catch (error) {
       console.log('error: ', error);
     }
@@ -162,11 +183,37 @@ export class OrderService {
         status: OrderStatus.Pending,
       });
 
+      if (order.paymentMethod === PaymentMethod.MOMO) {
+        const totalPrice =
+          dto.orderItems.reduce(
+            (total, item) => (total = total + item.price * item.quantity),
+            0,
+          ) + dto.shippingFee;
+        try {
+          const momoPayUrl = await this.paymentWithMomo(
+            order._id.toString(),
+            totalPrice.toString(),
+          );
+
+          return handleResponseSuccess({
+            data: momoPayUrl,
+            message: CREATE_ORDER_SUCCESS,
+          });
+        } catch (error) {
+          console.log('error: ', error);
+          return handleResponseFailure({
+            error: ERROR_MAKE_PAYMENT_WITH_MOMO,
+            statusCode: HttpStatus.BAD_REQUEST,
+          });
+        }
+      }
+
       return handleResponseSuccess({
-        data: CREATE_ORDER_SUCCESS,
+        data: '',
         message: CREATE_ORDER_SUCCESS,
       });
     } catch (error) {
+      console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_CREATE_ORDER,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
@@ -186,6 +233,29 @@ export class OrderService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_CREATE_ORDER_ITEM,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async checkOrder(orderId: string) {
+    try {
+      const order = await this.orderModel.findById(orderId);
+      if (order) {
+        return handleResponseSuccess({
+          data: true,
+          message: CHECK_ORDER_SUCCESS,
+        });
+      }
+
+      return handleResponseSuccess({
+        data: false,
+        message: CHECK_ORDER_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_CHECK_ORDER,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
