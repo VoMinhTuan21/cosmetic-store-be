@@ -7,3 +7,4 @@ export * from './variant.dto';
 export * from './brand.dto';
 export * from './user.dto';
 export * from './tag.dto';
+export * from './order.dto';
