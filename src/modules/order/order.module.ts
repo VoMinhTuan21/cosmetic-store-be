@@ -4,6 +4,7 @@ import { OrderController } from './order.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Order, OrderItem, OrderItemSchema, OrderSchema } from '../../schemas';
 import { ProductModule } from '../product/product.module';
+import { HttpModule } from '@nestjs/axios';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { OrderProfile } from './order.profile';
 
@@ -14,6 +15,7 @@ import { OrderProfile } from './order.profile';
       { name: OrderItem.name, schema: OrderItemSchema },
     ]),
     ProductModule,
+    HttpModule,
     CloudinaryModule,
   ],
   providers: [OrderService, OrderProfile],
