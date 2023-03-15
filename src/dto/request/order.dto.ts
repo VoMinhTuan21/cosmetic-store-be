@@ -1,6 +1,69 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { PaymentMethod } from '../../constances/enum';
+
+export class CreateOrderItemDTO {
+  @ApiProperty({
+    type: String,
+  })
+  @IsMongoId()
+  @IsNotEmpty()
+  productItem: string;
+
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  price: number;
+
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  quantity: number;
+}
+
+export class CreateOrderDTO {
+  @ApiProperty({
+    type: String,
+  })
+  @IsMongoId()
+  address: string;
+
+  @ApiProperty({
+    type: String,
+    enum: PaymentMethod,
+  })
+  @IsNotEmpty()
+  paymentMethod: PaymentMethod;
+
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  shippingFee: number;
+
+  @ApiProperty({
+    type: [CreateOrderItemDTO],
+  })
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemDTO)
+  orderItems: CreateOrderItemDTO[];
+}
 
 export class SignatureDTO {
   @ApiProperty({ type: String })

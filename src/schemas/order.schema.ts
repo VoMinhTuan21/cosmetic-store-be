@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
-import { Gender } from '../constances/enum';
+import { Gender, OrderStatus, PaymentMethod } from '../constances/enum';
 import { AddressDocument } from './address.schema';
 import { UserDocument } from './user.schema';
 
@@ -39,8 +39,20 @@ export class Order {
 
   @Prop({
     type: String,
+    enum: PaymentMethod,
   })
-  status: string;
+  paymentMethod: PaymentMethod;
+
+  @Prop({
+    type: Number,
+  })
+  shippingFee: number;
+
+  @Prop({
+    type: String,
+    enum: OrderStatus,
+  })
+  status: OrderStatus;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
