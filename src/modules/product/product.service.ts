@@ -1210,4 +1210,18 @@ export class ProductService {
 
     await item.save();
   }
+
+  async getProductByProductItemId(id: string) {
+    const product = await this.productModel.findOne({ productItems: id });
+
+    return product;
+  }
+
+  async getProductItemById(id: string) {
+    const item = await (
+      await this.productItemModel.findById(id)
+    ).populate('productConfigurations');
+
+    return item;
+  }
 }

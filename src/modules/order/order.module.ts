@@ -4,6 +4,8 @@ import { OrderController } from './order.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Order, OrderItem, OrderItemSchema, OrderSchema } from '../../schemas';
 import { ProductModule } from '../product/product.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { OrderProfile } from './order.profile';
 
 @Module({
   imports: [
@@ -12,8 +14,9 @@ import { ProductModule } from '../product/product.module';
       { name: OrderItem.name, schema: OrderItemSchema },
     ]),
     ProductModule,
+    CloudinaryModule,
   ],
-  providers: [OrderService],
+  providers: [OrderService, OrderProfile],
   controllers: [OrderController],
 })
 export class OrderModule {}
