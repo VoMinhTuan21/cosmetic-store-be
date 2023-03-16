@@ -50,6 +50,12 @@ export class Order {
   shippingFee: number;
 
   @Prop({
+    type: Number,
+    default: 0,
+  })
+  transId: number;
+
+  @Prop({
     type: String,
     enum: OrderStatus,
   })

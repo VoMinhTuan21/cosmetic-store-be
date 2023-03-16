@@ -10,7 +10,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { PaymentMethod } from '../../constances/enum';
+import { OrderStatus, PaymentMethod } from '../../constances/enum';
 
 export class CreateOrderItemDTO {
   @ApiProperty({
@@ -157,4 +157,14 @@ export class MomoPaymentDTO {
   @IsOptional()
   @IsNotEmpty()
   signature: string;
+}
+
+export class UpdateOrderStatusDTO {
+  @ApiPropertyOptional({
+    type: String,
+    enum: OrderStatus,
+  })
+  @IsOptional()
+  @IsNotEmpty()
+  status: OrderStatus;
 }

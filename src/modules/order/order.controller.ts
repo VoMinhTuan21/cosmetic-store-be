@@ -6,9 +6,10 @@ import {
   Get,
   Post,
   Param,
+  Put,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CreateOrderDTO } from '../../dto/request';
+import { CreateOrderDTO, UpdateOrderStatusDTO } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { Request } from 'express';
 import { MomoPaymentDTO, SignatureDTO } from '../../dto/request';
@@ -50,5 +51,13 @@ export class OrderController {
   @Get('/:orderId')
   checkOrder(@Param('orderId', ValidateMongoId) orderId: string) {
     return this.orderService.checkOrder(orderId);
+  }
+
+  @Put('/status/:orderId')
+  updateOrderStatus(
+    @Param('orderId', ValidateMongoId) orderId: string,
+    @Body() dto: UpdateOrderStatusDTO,
+  ) {
+    return this.orderService.updateOrderStatus(orderId, dto.status);
   }
 }
