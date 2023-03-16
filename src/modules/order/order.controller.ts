@@ -24,7 +24,7 @@ export class OrderController {
 
   @Post('/payment/momo')
   makePaymentMomo(@Body() body: MomoPaymentDTO) {
-    return this.orderService.confirmPayWithmomo(body);
+    return this.orderService.confirmPayWithMomo(body);
   }
 
   @ApiBearerAuth('access_token')

@@ -41,6 +41,8 @@ import {
   ERROR_SEARCH_PRODUCT,
   GET_RECOMMEND_CF_SUCCESS,
   ERROR_GET_RECOMMEND_CF,
+  ERROR_ADD_PROD_ITEM_QUANTITY,
+  ADD_PROD_ITEM_QUANTITY_SUCCESS,
 } from '../../constances';
 import {
   CreateProductDTO,
@@ -1223,5 +1225,24 @@ export class ProductService {
     ).populate('productConfigurations');
 
     return item;
+  }
+
+  async addProductItemQuantity(itemId: string, quantity: number) {
+    try {
+      const item = await this.productItemModel.findById(itemId);
+      item.quantity += quantity;
+      await item.save();
+
+      return handleResponseSuccess({
+        message: ADD_PROD_ITEM_QUANTITY_SUCCESS,
+        data: '',
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_ADD_PROD_ITEM_QUANTITY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 }

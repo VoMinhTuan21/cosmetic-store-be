@@ -137,14 +137,22 @@ export class OrderService {
     }
   }
 
-  async confirmPayWithmomo(body: MomoPaymentDTO) {
+  async confirmPayWithMomo(body: MomoPaymentDTO) {
     try {
       if (body.resultCode !== 0) {
         console.log('body.resultCode: ', body.resultCode);
         const order = await this.orderModel.findByIdAndDelete(body.orderId);
         for (let i = 0; i < order.orderItems.length; i++) {
           const orderItem = order.orderItems[i];
-          await this.orderItemModel.findByIdAndDelete(orderItem);
+
+          const delOrderItem = await this.orderItemModel.findByIdAndDelete(
+            orderItem,
+          );
+
+          await this.productService.addProductItemQuantity(
+            delOrderItem.productItem as string,
+            delOrderItem.quantity,
+          );
         }
 
         return handleResponseSuccess({
@@ -405,6 +413,20 @@ export class OrderService {
     }
   }
 
+  async takeProductBackFromOrder(orderId: string) {
+    const order = await this.orderModel.findById(orderId);
+    for (let i = 0; i < order.orderItems.length; i++) {
+      const orderItemId = order.orderItems[i];
+
+      const orderItem = await this.orderItemModel.findById(orderItemId);
+
+      await this.productService.addProductItemQuantity(
+        orderItem.productItem as string,
+        orderItem.quantity,
+      );
+    }
+  }
+
   async updateOrderStatus(orderId: string, status: OrderStatus) {
     try {
       const order = await this.orderModel.findById(orderId);
@@ -422,6 +444,10 @@ export class OrderService {
         ) {
           order.status = status;
           await order.save();
+
+          if (status === OrderStatus.Cancelled) {
+            await this.takeProductBackFromOrder(orderId);
+          }
         } else {
           return handleResponseFailure({
             error: ERROR_CAN_NOT_UPDATE_ORDER_STATUS,
