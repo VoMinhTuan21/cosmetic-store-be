@@ -1,3 +1,4 @@
+import { OmitType } from '@nestjs/swagger';
 import { PaymentMethod } from '../../constances/enum';
 import { AddressResDTO } from './user.dto';
 
@@ -20,6 +21,7 @@ export class OrderResDTO {
 export class OrderDetailResDTO extends OrderResDTO {
   address: AddressResDTO;
 }
+
 export class MomoPaymentRes {
   requestId: string;
   errorCode: number;
@@ -42,4 +44,11 @@ export class MomoConfirmPaymentRes {
   message: string;
   requestType: string;
   responseTime: string;
+}
+
+export class OrderTableResDTO extends OmitType(OrderResDTO, [
+  'orderItems',
+  'shippingFee',
+] as const) {
+  total: number;
 }

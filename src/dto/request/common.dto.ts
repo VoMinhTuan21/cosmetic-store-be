@@ -82,3 +82,21 @@ export class Coordinates {
   @Transform(({ value }) => parseFloat(value))
   longitude: number;
 }
+
+export class PagePagination {
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  page: number;
+
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  limit: number;
+}

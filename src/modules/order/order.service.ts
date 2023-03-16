@@ -5,8 +5,8 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { MomoPaymentDTO } from '../../dto/request';
-import { MomoPaymentRes } from '../../dto/response/order.dto';
+import { MomoPaymentDTO, QueryGetOrdersDashboard } from '../../dto/request';
+import { MomoPaymentRes, OrderTableResDTO } from '../../dto/response/order.dto';
 import {
   CREATE_ORDER_SUCCESS,
   USER_REJECT_PAY_WITH_MOMO,
@@ -21,6 +21,8 @@ import {
   PAYMENT_WITH_MOMO_SUCCESS,
   ERROR_CHECK_ORDER,
   CHECK_ORDER_SUCCESS,
+  GET_ORDERS_TABLE_DASHBOARD_SUCCESS,
+  ERROR_GET_ORDERS_TABLE_DASHBOARD,
 } from '../../constances';
 import { OrderStatus, PaymentMethod } from '../../constances/enum';
 import { CreateOrderDTO, CreateOrderItemDTO } from '../../dto/request';
@@ -281,10 +283,18 @@ export class OrderService {
     }
   }
 
-  async getOrderById(orderId: string, user: string) {
+  async getOrderById(orderId: string, user?: string) {
     try {
+      let query = {};
+
+      if (user) {
+        query = { _id: orderId, user: user };
+      } else {
+        query = { _id: orderId };
+      }
+
       const order = await this.orderModel
-        .findOne({ _id: orderId, user: user })
+        .findOne(query)
         .populate({
           path: 'orderItems',
         })
@@ -395,6 +405,68 @@ export class OrderService {
       return handleResponseFailure({
         error: ERROR_CHECK_ORDER,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getOrdresDashboard(type: OrderStatus, query: QueryGetOrdersDashboard) {
+    try {
+      let condition: { [index: string]: any } = {
+        status: type,
+      };
+
+      if (query.id) {
+        condition = {
+          _id: query.id,
+          ...condition,
+        };
+      }
+      if (query.from) {
+        condition = {
+          createdAt: {
+            $gte: new Date(query.from),
+          },
+          ...condition,
+        };
+      }
+      if (query.to) {
+        condition = {
+          createdAt: {
+            $lte: new Date(query.to),
+          },
+          ...condition,
+        };
+      }
+
+      const orders = await this.orderModel
+        .find(condition)
+        .sort({ createdAt: -1 });
+
+      const result: OrderTableResDTO[] = [];
+
+      for (const order of orders) {
+        const data = await this.getOrderById(order._id);
+        if (data) {
+          result.push(
+            this.mapper.map(data.data, OrderResDTO, OrderTableResDTO),
+          );
+        }
+      }
+
+      return handleResponseSuccess({
+        data: {
+          data: result.slice(
+            query.page * query.limit,
+            query.page * query.limit + query.limit,
+          ),
+          total: result.length,
+        },
+        message: GET_ORDERS_TABLE_DASHBOARD_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_ORDERS_TABLE_DASHBOARD,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }
