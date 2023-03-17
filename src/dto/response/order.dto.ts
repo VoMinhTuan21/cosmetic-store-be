@@ -16,6 +16,7 @@ export class OrderResDTO {
   orderItems: OrderItemResDTO[];
   shippingFee: number;
   paymentMethod: PaymentMethod;
+  orderId: string;
 }
 
 export class OrderDetailResDTO extends OrderResDTO {
@@ -51,4 +52,5 @@ export class OrderTableResDTO extends OmitType(OrderResDTO, [
   'shippingFee',
 ] as const) {
   total: number;
+  orderId: string;
 }

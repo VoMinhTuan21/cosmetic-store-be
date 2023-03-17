@@ -6,10 +6,15 @@ import {
   Get,
   Post,
   Param,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CreateOrderDTO, QueryGetOrdersDashboard } from '../../dto/request';
+import {
+  CreateOrderDTO,
+  UpdateOrderStatusDTO,
+  QueryGetOrdersDashboard,
+} from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { Request } from 'express';
 import { MomoPaymentDTO, SignatureDTO } from '../../dto/request';
@@ -24,7 +29,7 @@ export class OrderController {
 
   @Post('/payment/momo')
   makePaymentMomo(@Body() body: MomoPaymentDTO) {
-    return this.orderService.confirmPayWithmomo(body);
+    return this.orderService.confirmPayWithMomo(body);
   }
 
   @ApiBearerAuth('access_token')
@@ -40,6 +45,11 @@ export class OrderController {
     @Query() query: QueryGetOrdersDashboard,
   ) {
     return this.orderService.getOrdresDashboard(status, query);
+  }
+
+  @Get('/dashboard/detail/:id')
+  getOrderDetail(@Param('id') id: OrderStatus) {
+    return this.orderService.getOrderById(id);
   }
 
   @ApiBearerAuth('access_token')
@@ -59,5 +69,13 @@ export class OrderController {
   @Get('/:orderId')
   checkOrder(@Param('orderId', ValidateMongoId) orderId: string) {
     return this.orderService.checkOrder(orderId);
+  }
+
+  @Put('/status/:orderId')
+  updateOrderStatus(
+    @Param('orderId', ValidateMongoId) orderId: string,
+    @Body() dto: UpdateOrderStatusDTO,
+  ) {
+    return this.orderService.updateOrderStatus(orderId, dto.status);
   }
 }

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
-import { Gender, OrderStatus, PaymentMethod } from '../constances/enum';
+import { OrderStatus, PaymentMethod } from '../constances/enum';
 import { AddressDocument } from './address.schema';
 import { OrderItemDocument } from './orderItem.schema';
 import { UserDocument } from './user.schema';
@@ -12,6 +12,12 @@ export type OrderDocument = Order & Document & SchemaTimestampsConfig;
 })
 export class Order {
   _id: string;
+
+  @Prop({
+    type: String,
+    unique: true,
+  })
+  orderId: string;
 
   @Prop([
     {
@@ -48,6 +54,12 @@ export class Order {
     type: Number,
   })
   shippingFee: number;
+
+  @Prop({
+    type: Number,
+    default: 0,
+  })
+  transId: number;
 
   @Prop({
     type: String,

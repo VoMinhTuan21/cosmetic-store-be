@@ -10,7 +10,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { PaymentMethod } from '../../constances/enum';
+import { OrderStatus, PaymentMethod } from '../../constances/enum';
 import { PagePagination } from './common.dto';
 
 export class CreateOrderItemDTO {
@@ -160,12 +160,21 @@ export class MomoPaymentDTO {
   signature: string;
 }
 
+export class UpdateOrderStatusDTO {
+  @ApiPropertyOptional({
+    type: String,
+    enum: OrderStatus,
+  })
+  @IsOptional()
+  @IsNotEmpty()
+  status: OrderStatus;
+}
+
 export class QueryGetOrdersDashboard extends PagePagination {
   @ApiPropertyOptional({
     type: String,
   })
   @IsOptional()
-  @IsMongoId()
   @IsNotEmpty()
   id: string;
 

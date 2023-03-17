@@ -36,6 +36,10 @@ export class OrderProfile extends AutomapperProfile {
           mapFrom((source) => source.paymentMethod),
         ),
         forMember(
+          (destination) => destination.orderId,
+          mapFrom((source) => source.orderId),
+        ),
+        forMember(
           (destination) => destination.shippingFee,
           mapFrom((source) => source.shippingFee),
         ),
@@ -51,6 +55,10 @@ export class OrderProfile extends AutomapperProfile {
         forMember(
           (destination) => destination.date,
           mapFrom((source) => source.date),
+        ),
+        forMember(
+          (destination) => destination.orderId,
+          mapFrom((source) => source.orderId),
         ),
         forMember(
           (destination) => destination.paymentMethod,

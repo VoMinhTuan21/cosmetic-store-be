@@ -21,6 +21,10 @@ import {
   PAYMENT_WITH_MOMO_SUCCESS,
   ERROR_CHECK_ORDER,
   CHECK_ORDER_SUCCESS,
+  ERROR_UPDATE_ORDER_STATUS,
+  ERROR_ORDER_NOT_FOUND,
+  ERROR_CAN_NOT_UPDATE_ORDER_STATUS,
+  UPDATE_ORDER_STATUS_SUCCESS,
   GET_ORDERS_TABLE_DASHBOARD_SUCCESS,
   ERROR_GET_ORDERS_TABLE_DASHBOARD,
 } from '../../constances';
@@ -45,6 +49,7 @@ import {
 } from '../../utils/handle-response';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { ProductService } from '../product/product.service';
+import { generateOrderId, generateString } from '../../utils/random-string';
 
 @Injectable()
 export class OrderService {
@@ -135,14 +140,22 @@ export class OrderService {
     }
   }
 
-  async confirmPayWithmomo(body: MomoPaymentDTO) {
+  async confirmPayWithMomo(body: MomoPaymentDTO) {
     try {
       if (body.resultCode !== 0) {
         console.log('body.resultCode: ', body.resultCode);
         const order = await this.orderModel.findByIdAndDelete(body.orderId);
         for (let i = 0; i < order.orderItems.length; i++) {
           const orderItem = order.orderItems[i];
-          await this.orderItemModel.findByIdAndDelete(orderItem);
+
+          const delOrderItem = await this.orderItemModel.findByIdAndDelete(
+            orderItem,
+          );
+
+          await this.productService.addProductItemQuantity(
+            delOrderItem.productItem as string,
+            delOrderItem.quantity,
+          );
         }
 
         return handleResponseSuccess({
@@ -152,6 +165,8 @@ export class OrderService {
       }
 
       const order = await this.orderModel.findById(body.orderId);
+      order.transId = body.transId;
+      await order.save();
 
       return handleResponseSuccess({
         data: '',
@@ -198,6 +213,7 @@ export class OrderService {
         paymentMethod: dto.paymentMethod,
         orderItems: orderItems,
         status: OrderStatus.Pending,
+        orderId: generateOrderId(),
       });
 
       if (order.paymentMethod === PaymentMethod.MOMO) {
@@ -285,12 +301,21 @@ export class OrderService {
 
   async getOrderById(orderId: string, user?: string) {
     try {
-      let query = {};
+      let query: { [index: string]: any } = {};
+
+      if (orderId) {
+        if (orderId.length === 14) {
+          query = { orderId: orderId };
+        } else {
+          query = { _id: orderId };
+        }
+      }
 
       if (user) {
-        query = { _id: orderId, user: user };
-      } else {
-        query = { _id: orderId };
+        query = {
+          user: user,
+          ...query,
+        };
       }
 
       const order = await this.orderModel
@@ -356,6 +381,7 @@ export class OrderService {
 
       const result: OrderDetailResDTO = {
         _id: order._id,
+        orderId: order.orderId,
         date: order.createdAt as string,
         orderItems: orderItems,
         paymentMethod: order.paymentMethod,
@@ -409,6 +435,83 @@ export class OrderService {
     }
   }
 
+  async takeProductBackFromOrder(orderId: string) {
+    const order = await this.orderModel.findById(orderId);
+    for (let i = 0; i < order.orderItems.length; i++) {
+      const orderItemId = order.orderItems[i];
+
+      const orderItem = await this.orderItemModel.findById(orderItemId);
+
+      await this.productService.addProductItemQuantity(
+        orderItem.productItem as string,
+        orderItem.quantity,
+      );
+    }
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus) {
+    try {
+      const order = await this.orderModel.findById(orderId);
+      if (!order) {
+        return handleResponseFailure({
+          error: ERROR_ORDER_NOT_FOUND,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      if (order.status === OrderStatus.Pending) {
+        if (
+          status === OrderStatus.Delivering ||
+          status === OrderStatus.Cancelled
+        ) {
+          order.status = status;
+          await order.save();
+
+          if (status === OrderStatus.Cancelled) {
+            await this.takeProductBackFromOrder(orderId);
+          }
+        } else {
+          return handleResponseFailure({
+            error: ERROR_CAN_NOT_UPDATE_ORDER_STATUS,
+            statusCode: HttpStatus.BAD_REQUEST,
+          });
+        }
+      } else if (order.status === OrderStatus.Delivering) {
+        if (
+          status === OrderStatus.Completed ||
+          status === OrderStatus.NotAcceptOrder
+        ) {
+          order.status = status;
+          await order.save();
+        } else {
+          return handleResponseFailure({
+            error: ERROR_CAN_NOT_UPDATE_ORDER_STATUS,
+            statusCode: HttpStatus.BAD_REQUEST,
+          });
+        }
+      } else {
+        return handleResponseFailure({
+          error: ERROR_CAN_NOT_UPDATE_ORDER_STATUS,
+          statusCode: HttpStatus.BAD_REQUEST,
+        });
+      }
+
+      return handleResponseSuccess({
+        message: UPDATE_ORDER_STATUS_SUCCESS,
+        data: {
+          orderId,
+          status,
+        },
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_UPDATE_ORDER_STATUS,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
   async getOrdresDashboard(type: OrderStatus, query: QueryGetOrdersDashboard) {
     try {
       let condition: { [index: string]: any } = {
@@ -417,7 +520,7 @@ export class OrderService {
 
       if (query.id) {
         condition = {
-          _id: query.id,
+          orderId: query.id,
           ...condition,
         };
       }

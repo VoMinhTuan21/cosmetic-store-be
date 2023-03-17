@@ -19,4 +19,5 @@ export enum OrderStatus {
   Delivering = 'delivering',
   Completed = 'completed',
   Cancelled = 'cancelled',
+  NotAcceptOrder = 'notAcceptOrder',
 }
