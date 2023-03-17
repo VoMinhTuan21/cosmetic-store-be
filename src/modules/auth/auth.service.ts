@@ -54,6 +54,7 @@ export class AuthService {
     _id: string,
     email: string,
     name: string,
+    admin: boolean,
     rememberMe = false,
   ): Promise<string> {
     const secret: string = this.config.get('JWT_SECRET');
@@ -61,6 +62,7 @@ export class AuthService {
       _id,
       email,
       name,
+      admin,
     };
 
     let expiresIn = this.config.get('JWT_EXPIRATION_TIME_SHORT');
@@ -169,7 +171,12 @@ export class AuthService {
         );
         return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
           data: {
-            token: await this.signJWTToken(user._id, user.email, user.name),
+            token: await this.signJWTToken(
+              user._id,
+              user.email,
+              user.name,
+              false,
+            ),
             user: user,
           },
           message: SIGN_SUCCESS,
@@ -186,7 +193,12 @@ export class AuthService {
 
         return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
           data: {
-            token: await this.signJWTToken(user._id, user.email, user.name),
+            token: await this.signJWTToken(
+              user._id,
+              user.email,
+              user.name,
+              false,
+            ),
             user: user,
           },
           message: SIGN_SUCCESS,
@@ -208,6 +220,7 @@ export class AuthService {
             newUser._id,
             newUser.email,
             newUser.name,
+            false,
           ),
           user: newUser,
         },
@@ -277,7 +290,12 @@ export class AuthService {
 
       return handleResponseSuccess({
         data: {
-          token: await this.signJWTToken(user._id, user.email, user.name),
+          token: await this.signJWTToken(
+            user._id,
+            user.email,
+            user.name,
+            false,
+          ),
           user: user,
         },
         message: LINK_ACCOUNT_SUCCESS,

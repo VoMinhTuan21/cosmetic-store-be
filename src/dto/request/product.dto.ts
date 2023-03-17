@@ -274,4 +274,9 @@ export class CreateCommentDTO {
   @IsMongoId()
   @IsNotEmpty()
   producItemId: string;
+
+  @ApiProperty({ type: String })
+  @IsMongoId()
+  @IsNotEmpty()
+  orderItemId: string;
 }

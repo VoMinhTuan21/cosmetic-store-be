@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { mongo, SchemaTimestampsConfig } from 'mongoose';
 import { Gender } from '../constances/enum';
+import { OrderItemDocument } from './orderItem.schema';
 import { UserDocument } from './user.schema';
 
 export type CommentDocument = Comment & Document & SchemaTimestampsConfig;
@@ -26,6 +27,12 @@ export class Comment {
     type: Number,
   })
   rate: number;
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'OrderItem',
+  })
+  orderItem: OrderItemDocument | string;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);

@@ -6,7 +6,11 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MomoPaymentDTO, QueryGetOrdersDashboard } from '../../dto/request';
-import { MomoPaymentRes, OrderTableResDTO } from '../../dto/response/order.dto';
+import {
+  MomoPaymentRes,
+  OrderItemAdminResDTO,
+  OrderTableResDTO,
+} from '../../dto/response/order.dto';
 import {
   CREATE_ORDER_SUCCESS,
   USER_REJECT_PAY_WITH_MOMO,
@@ -32,11 +36,12 @@ import { OrderStatus, PaymentMethod } from '../../constances/enum';
 import { CreateOrderDTO, CreateOrderItemDTO } from '../../dto/request';
 import {
   OrderDetailResDTO,
-  OrderItemResDTO,
+  OrderItemClientResDTO,
   OrderResDTO,
 } from '../../dto/response';
 import {
   AddressDocument,
+  CommentDocument,
   Order,
   OrderDocument,
   OrderItem,
@@ -271,14 +276,14 @@ export class OrderService {
     }
   }
 
-  async getOrders(type: OrderStatus, user: string) {
+  async getOrders(type: OrderStatus, user: string, admin: boolean) {
     try {
       const orders = await this.orderModel.find({ status: type, user: user });
 
       const result: OrderResDTO[] = [];
 
       for (const order of orders) {
-        const data = await this.getOrderById(order._id, user);
+        const data = await this.getOrderById(order._id, admin, user);
 
         if (data) {
           result.push(
@@ -299,7 +304,7 @@ export class OrderService {
     }
   }
 
-  async getOrderById(orderId: string, user?: string) {
+  async getOrderById(orderId: string, admin: boolean, user?: string) {
     try {
       let query: { [index: string]: any } = {};
 
@@ -325,56 +330,16 @@ export class OrderService {
         })
         .populate({ path: 'address', select: '-updatedAt -createdAt' });
 
-      const orderItems: OrderItemResDTO[] = [];
+      const orderItems: (OrderItemAdminResDTO | OrderItemClientResDTO)[] = [];
 
       for (const orderItem of order.orderItems as OrderItemDocument[]) {
-        const product = await this.productService.getProductByProductItemId(
-          orderItem.productItem as string,
-        );
-
-        const productItem = await this.productService.getProductItemById(
-          orderItem.productItem as string,
-        );
-
-        let nameVi = '';
-        let nameEn = '';
-
-        product.name.forEach((item) => {
-          if (item.language === 'vi') {
-            nameVi = item.value;
-          } else if (item.language === 'en') {
-            nameEn = item.value;
-          }
-        });
-
-        for (const item of productItem.productConfigurations as VariationOptionDocument[]) {
-          item.value.forEach((e) => {
-            if (e.language === 'vi') {
-              nameVi = `${nameVi} ${e.value}`;
-            } else {
-              nameEn = `${nameEn} ${e.value}`;
-            }
-          });
+        let orderItemDetail: OrderItemAdminResDTO | OrderItemClientResDTO;
+        if (admin) {
+          orderItemDetail = await this.getOrderItemDetailAdmin(orderItem);
+        } else {
+          orderItemDetail = await this.getOrderItemDetailClient(orderItem);
         }
-
-        orderItems.push({
-          _id: orderItem.productItem as string,
-          name: [
-            {
-              language: 'vi',
-              value: nameVi,
-            },
-            {
-              language: 'en',
-              value: nameEn,
-            },
-          ],
-          thumbnail: await this.cloudinaryService.getImageUrl(
-            productItem.thumbnail,
-          ),
-          price: orderItem.price,
-          quantity: orderItem.quantity,
-        });
+        orderItems.push(orderItemDetail);
       }
 
       const address = order.address as AddressDocument;
@@ -397,6 +362,7 @@ export class OrderService {
           specificAddress: address.specificAddress,
           ward: address.ward,
         },
+        status: order.status,
       };
 
       return handleResponseSuccess({
@@ -410,6 +376,116 @@ export class OrderService {
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
+  }
+
+  async getOrderItemDetailClient(orderItem: OrderItemDocument) {
+    console.log('orderItem: ', orderItem);
+    const product = await this.productService.getProductByProductItemId(
+      orderItem.productItem as string,
+    );
+
+    const productItem = await this.productService.getProductItemById(
+      orderItem.productItem as string,
+    );
+
+    console.log('productItem.comments: ', productItem.comments);
+    const comment = (productItem.comments as CommentDocument[]).find(
+      (item) => item.orderItem.toString() === orderItem._id.toString(),
+    );
+
+    let nameVi = '';
+    let nameEn = '';
+
+    product.name.forEach((item) => {
+      if (item.language === 'vi') {
+        nameVi = item.value;
+      } else if (item.language === 'en') {
+        nameEn = item.value;
+      }
+    });
+
+    for (const item of productItem.productConfigurations as VariationOptionDocument[]) {
+      item.value.forEach((e) => {
+        if (e.language === 'vi') {
+          nameVi = `${nameVi} ${e.value}`;
+        } else {
+          nameEn = `${nameEn} ${e.value}`;
+        }
+      });
+    }
+
+    const orderItemDetail: OrderItemClientResDTO = {
+      _id: orderItem.productItem as string,
+      name: [
+        {
+          language: 'vi',
+          value: nameVi,
+        },
+        {
+          language: 'en',
+          value: nameEn,
+        },
+      ],
+      thumbnail: await this.cloudinaryService.getImageUrl(
+        productItem.thumbnail,
+      ),
+      price: orderItem.price,
+      quantity: orderItem.quantity,
+      configurations: (
+        productItem.productConfigurations as VariationOptionDocument[]
+      ).map((varia) => varia.value),
+      comment: comment && {
+        _id: comment._id,
+        rate: comment.rate,
+        content: comment.content,
+      },
+    };
+
+    return orderItemDetail;
+  }
+
+  async getOrderItemDetailAdmin(orderItem: OrderItemDocument) {
+    const product = await this.productService.getProductByProductItemId(
+      orderItem.productItem as string,
+    );
+
+    const productItem = await this.productService.getProductItemById(
+      orderItem.productItem as string,
+    );
+
+    let nameVi = '';
+
+    product.name.forEach((item) => {
+      if (item.language === 'vi') {
+        nameVi = item.value;
+      }
+    });
+
+    for (const item of productItem.productConfigurations as VariationOptionDocument[]) {
+      item.value.forEach((e) => {
+        if (e.language === 'vi') {
+          nameVi = `${nameVi} ${e.value}`;
+        }
+      });
+    }
+
+    const orderItemDetail: OrderItemAdminResDTO = {
+      _id: orderItem.productItem as string,
+      name: nameVi,
+      thumbnail: await this.cloudinaryService.getImageUrl(
+        productItem.thumbnail,
+      ),
+      price: orderItem.price,
+      quantity: orderItem.quantity,
+      configurations: (
+        productItem.productConfigurations as VariationOptionDocument[]
+      ).map(
+        (varia) =>
+          varia.value.filter((item) => item.language === 'vi')[0].value,
+      ),
+    };
+
+    return orderItemDetail;
   }
 
   async checkOrder(orderId: string) {
@@ -548,7 +624,7 @@ export class OrderService {
       const result: OrderTableResDTO[] = [];
 
       for (const order of orders) {
-        const data = await this.getOrderById(order._id);
+        const data = await this.getOrderById(order._id, true);
         if (data) {
           result.push(
             this.mapper.map(data.data, OrderResDTO, OrderTableResDTO),

@@ -49,21 +49,29 @@ export class OrderController {
 
   @Get('/dashboard/detail/:id')
   getOrderDetail(@Param('id') id: OrderStatus) {
-    return this.orderService.getOrderById(id);
+    return this.orderService.getOrderById(id, true);
   }
 
   @ApiBearerAuth('access_token')
   @UseGuards(JwtGuard)
   @Get('/detail/:id')
   getOrderById(@Param('id') id: OrderStatus, @Req() req: Request) {
-    return this.orderService.getOrderById(id, (req.user as IJWTInfo)._id);
+    return this.orderService.getOrderById(
+      id,
+      (req.user as IJWTInfo).admin,
+      (req.user as IJWTInfo)._id,
+    );
   }
 
   @ApiBearerAuth('access_token')
   @UseGuards(JwtGuard)
   @Get('/status/:status')
   getOrders(@Param('status') status: OrderStatus, @Req() req: Request) {
-    return this.orderService.getOrders(status, (req.user as IJWTInfo)._id);
+    return this.orderService.getOrders(
+      status,
+      (req.user as IJWTInfo)._id,
+      (req.user as IJWTInfo).admin,
+    );
   }
 
   @Get('/:orderId')

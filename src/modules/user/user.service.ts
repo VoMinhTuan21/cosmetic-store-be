@@ -64,6 +64,7 @@ export class UserService {
         _id: user._id,
         name: user.name,
         email: user.email,
+        admin: false,
       };
     }
 
@@ -77,6 +78,7 @@ export class UserService {
         _id: user._id,
         name: user.name,
         email: user.email,
+        admin: false,
       };
     }
 
@@ -94,6 +96,7 @@ export class UserService {
       _id: user._id,
       name: user.name,
       email: user.email,
+      admin: false,
     };
   }
 

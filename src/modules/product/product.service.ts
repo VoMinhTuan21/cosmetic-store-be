@@ -1227,9 +1227,10 @@ export class ProductService {
   }
 
   async getProductItemById(id: string) {
-    const item = await (
-      await this.productItemModel.findById(id)
-    ).populate('productConfigurations');
+    const item = await this.productItemModel
+      .findById(id)
+      .populate('productConfigurations')
+      .populate('comments');
 
     return item;
   }
@@ -1259,6 +1260,7 @@ export class ProductService {
         rate: dto.rate,
         content: dto.content,
         user: dto.userId,
+        orderItem: dto.orderItemId,
       });
 
       const prodItem = await this.productItemModel
