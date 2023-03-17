@@ -43,8 +43,11 @@ import {
   ERROR_GET_RECOMMEND_CF,
   ERROR_ADD_PROD_ITEM_QUANTITY,
   ADD_PROD_ITEM_QUANTITY_SUCCESS,
+  ERROR_CREATE_COMMENT,
+  CREATE_COMMENT_SUCCESS,
 } from '../../constances';
 import {
+  CreateCommentDTO,
   CreateProductDTO,
   CreateProductItemDTO,
   LoadMorePagination,
@@ -59,6 +62,8 @@ import {
 } from '../../dto/response';
 import {
   BrandDocument,
+  CommentDocument,
+  Comment,
   Product,
   ProductDocument,
   ProductItem,
@@ -81,6 +86,8 @@ export class ProductService {
     private readonly productModel: Model<ProductDocument>,
     @InjectModel(ProductItem.name)
     private readonly productItemModel: Model<ProductItemDocument>,
+    @InjectModel(Comment.name)
+    private readonly commentModel: Model<CommentDocument>,
     @InjectMapper() private readonly mapper: Mapper,
     private readonly cloudinaryService: CloudinaryService,
     private readonly categoryService: CategoryService,
@@ -900,8 +907,8 @@ export class ProductService {
           variationList,
           productInfo: {
             descriptions: product.description,
-            rating: product.rating,
-            commemts: product.comments,
+            rating: 0,
+            commemts: [],
           },
         },
       });
@@ -1242,6 +1249,48 @@ export class ProductService {
       return handleResponseFailure({
         error: ERROR_ADD_PROD_ITEM_QUANTITY,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async createComment(dto: CreateCommentDTO) {
+    try {
+      const newComment = await this.commentModel.create({
+        rate: dto.rate,
+        content: dto.content,
+        user: dto.userId,
+      });
+
+      const prodItem = await this.productItemModel
+        .findByIdAndUpdate(
+          dto.producItemId,
+          {
+            $push: { comments: newComment._id },
+          },
+          { new: true },
+        )
+        .populate('comments');
+
+      console.log('prodItem.comments: ', prodItem.comments);
+      const newTotalRate = (prodItem.comments as CommentDocument[]).reduce(
+        (totalRating, currComment) => totalRating + currComment.rate,
+        0,
+      );
+
+      console.log('newTotalRate: ', newTotalRate);
+      prodItem.rating = newTotalRate / prodItem.comments.length;
+
+      await prodItem.save();
+
+      return handleResponseSuccess({
+        message: CREATE_COMMENT_SUCCESS,
+        data: '',
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_CREATE_COMMENT,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }

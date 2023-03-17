@@ -2,7 +2,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
 import { BrandDocument } from './brand.schema';
 import { CategoryDocument } from './category.schema';
-import { CommentDocument } from './comment.schema';
 import { ProductItemDocument } from './productItem.schema';
 import { VariationDocument } from './variation.schema';
 
@@ -23,19 +22,6 @@ export class Product {
     type: Array<ITranslate>,
   })
   description: ITranslate[];
-
-  @Prop({
-    type: Number,
-    default: 0,
-  })
-  rating: number;
-
-  @Prop([
-    {
-      type: mongoose.Schema.Types.ObjectId,
-    },
-  ])
-  comments: CommentDocument[] | string[];
 
   @Prop([
     {

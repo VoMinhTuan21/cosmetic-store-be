@@ -24,6 +24,7 @@ import {
   ProductItemsByCategoryAndOptionsDTO,
   LoadMorePagination,
   SearchProductDTO,
+  CreateCommentDTO,
 } from '../../dto/request';
 import { imageFileFilter } from '../../utils/image-file-filter';
 import { ValidateMongoId } from '../../utils/validate-pipe';
@@ -173,5 +174,10 @@ export class ProductController {
   @Get('/recommend/cf/:id')
   getRecommendCF(@Param('id') id: string) {
     return this.productService.recommendCF(id);
+  }
+
+  @Post('/comment')
+  createComment(@Body() body: CreateCommentDTO) {
+    return this.productService.createComment(body);
   }
 }

@@ -5,6 +5,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import {
   Product,
   ProductItem,
+  Comment,
+  CommentSchema,
   ProductItemSchema,
   ProductSchema,
 } from '../../schemas';
@@ -18,6 +20,7 @@ import { HttpModule } from '@nestjs/axios';
     MongooseModule.forFeature([
       { name: Product.name, schema: ProductSchema },
       { name: ProductItem.name, schema: ProductItemSchema },
+      { name: Comment.name, schema: CommentSchema },
     ]),
     CloudinaryModule,
     CategoryModule,

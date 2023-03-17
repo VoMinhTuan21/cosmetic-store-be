@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
+import { CommentDocument } from './comment.schema';
 import { TagDocument } from './tag.schema';
 import { VariationOptionDocument } from './variationOption.schema';
 
@@ -50,6 +51,20 @@ export class ProductItem {
     },
   ])
   tags: TagDocument[] | string[];
+
+  @Prop({
+    type: Number,
+    default: 0,
+  })
+  rating: number;
+
+  @Prop([
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Comment',
+    },
+  ])
+  comments: CommentDocument[] | string[];
 }
 
 export const ProductItemSchema = SchemaFactory.createForClass(ProductItem);
