@@ -2,15 +2,16 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  IsDateString,
   IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
-  MinLength,
   ValidateNested,
 } from 'class-validator';
 import { OrderStatus, PaymentMethod } from '../../constances/enum';
+import { PagePagination } from './common.dto';
 
 export class CreateOrderItemDTO {
   @ApiProperty({
@@ -167,4 +168,27 @@ export class UpdateOrderStatusDTO {
   @IsOptional()
   @IsNotEmpty()
   status: OrderStatus;
+}
+
+export class QueryGetOrdersDashboard extends PagePagination {
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsNotEmpty()
+  id: string;
+
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsDateString()
+  from: string;
+
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsDateString()
+  to: string;
 }

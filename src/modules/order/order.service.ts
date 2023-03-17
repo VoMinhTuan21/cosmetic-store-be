@@ -5,8 +5,8 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { MomoPaymentDTO } from '../../dto/request';
-import { MomoPaymentRes } from '../../dto/response/order.dto';
+import { MomoPaymentDTO, QueryGetOrdersDashboard } from '../../dto/request';
+import { MomoPaymentRes, OrderTableResDTO } from '../../dto/response/order.dto';
 import {
   CREATE_ORDER_SUCCESS,
   USER_REJECT_PAY_WITH_MOMO,
@@ -25,6 +25,8 @@ import {
   ERROR_ORDER_NOT_FOUND,
   ERROR_CAN_NOT_UPDATE_ORDER_STATUS,
   UPDATE_ORDER_STATUS_SUCCESS,
+  GET_ORDERS_TABLE_DASHBOARD_SUCCESS,
+  ERROR_GET_ORDERS_TABLE_DASHBOARD,
 } from '../../constances';
 import { OrderStatus, PaymentMethod } from '../../constances/enum';
 import { CreateOrderDTO, CreateOrderItemDTO } from '../../dto/request';
@@ -47,6 +49,7 @@ import {
 } from '../../utils/handle-response';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { ProductService } from '../product/product.service';
+import { generateOrderId, generateString } from '../../utils/random-string';
 
 @Injectable()
 export class OrderService {
@@ -210,6 +213,7 @@ export class OrderService {
         paymentMethod: dto.paymentMethod,
         orderItems: orderItems,
         status: OrderStatus.Pending,
+        orderId: generateOrderId(),
       });
 
       if (order.paymentMethod === PaymentMethod.MOMO) {
@@ -295,10 +299,27 @@ export class OrderService {
     }
   }
 
-  async getOrderById(orderId: string, user: string) {
+  async getOrderById(orderId: string, user?: string) {
     try {
+      let query: { [index: string]: any } = {};
+
+      if (orderId) {
+        if (orderId.length === 14) {
+          query = { orderId: orderId };
+        } else {
+          query = { _id: orderId };
+        }
+      }
+
+      if (user) {
+        query = {
+          user: user,
+          ...query,
+        };
+      }
+
       const order = await this.orderModel
-        .findOne({ _id: orderId, user: user })
+        .findOne(query)
         .populate({
           path: 'orderItems',
         })
@@ -360,6 +381,7 @@ export class OrderService {
 
       const result: OrderDetailResDTO = {
         _id: order._id,
+        orderId: order.orderId,
         date: order.createdAt as string,
         orderItems: orderItems,
         paymentMethod: order.paymentMethod,
@@ -485,6 +507,68 @@ export class OrderService {
       console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_UPDATE_ORDER_STATUS,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getOrdresDashboard(type: OrderStatus, query: QueryGetOrdersDashboard) {
+    try {
+      let condition: { [index: string]: any } = {
+        status: type,
+      };
+
+      if (query.id) {
+        condition = {
+          orderId: query.id,
+          ...condition,
+        };
+      }
+      if (query.from) {
+        condition = {
+          createdAt: {
+            $gte: new Date(query.from),
+          },
+          ...condition,
+        };
+      }
+      if (query.to) {
+        condition = {
+          createdAt: {
+            $lte: new Date(query.to),
+          },
+          ...condition,
+        };
+      }
+
+      const orders = await this.orderModel
+        .find(condition)
+        .sort({ createdAt: -1 });
+
+      const result: OrderTableResDTO[] = [];
+
+      for (const order of orders) {
+        const data = await this.getOrderById(order._id);
+        if (data) {
+          result.push(
+            this.mapper.map(data.data, OrderResDTO, OrderTableResDTO),
+          );
+        }
+      }
+
+      return handleResponseSuccess({
+        data: {
+          data: result.slice(
+            query.page * query.limit,
+            query.page * query.limit + query.limit,
+          ),
+          total: result.length,
+        },
+        message: GET_ORDERS_TABLE_DASHBOARD_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_ORDERS_TABLE_DASHBOARD,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
