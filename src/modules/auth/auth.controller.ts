@@ -36,6 +36,11 @@ export class AuthController {
     return this.authService.sendMailOTP(data.email);
   }
 
+  @Post('/send-otp')
+  sendOTP(@Body() data: sendMailOTP) {
+    return this.authService.sendOTP(data.email);
+  }
+
   @ApiBearerAuth('access_token')
   @UseGuards(JwtGuard)
   @Get('/check-status-social-account')

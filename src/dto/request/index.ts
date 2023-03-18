@@ -8,3 +8,4 @@ export * from './brand.dto';
 export * from './user.dto';
 export * from './tag.dto';
 export * from './order.dto';
+export * from './admin.dto';

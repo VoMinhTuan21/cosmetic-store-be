@@ -6,3 +6,4 @@ export * from './brand-res-message';
 export * from './user-response-message';
 export * from './tag-response-message';
 export * from './order-response-message';
+export * from './admin-response-message';

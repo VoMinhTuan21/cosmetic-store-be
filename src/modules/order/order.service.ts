@@ -316,12 +316,14 @@ export class OrderService {
         }
       }
 
-      if (user) {
+      if (!admin && user) {
         query = {
           user: user,
           ...query,
         };
       }
+
+      console.log('query: ', query);
 
       const order = await this.orderModel
         .findOne(query)

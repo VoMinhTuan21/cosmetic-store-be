@@ -15,6 +15,7 @@ import { BrandModule } from './modules/brand/brand.module';
 import { ProductModule } from './modules/product/product.module';
 import { TagModule } from './modules/tag/tag.module';
 import { OrderModule } from './modules/order/order.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { OrderModule } from './modules/order/order.module';
     ProductModule,
     TagModule,
     OrderModule,
+    AdminModule,
   ],
   controllers: [],
   providers: [],

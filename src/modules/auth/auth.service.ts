@@ -23,6 +23,7 @@ import {
   ERROR_LINK_ACCOUNT,
   ERROR_USER_NOT_EXIST,
 } from '../../constances';
+import { Role } from '../../constances/enum';
 import {
   SignInWithSocialMediaDTO,
   SignUpWithPassword,
@@ -50,19 +51,19 @@ export class AuthService {
     private readonly otpService: OtpverificationService,
   ) {}
 
-  private async signJWTToken(
+  async signJWTToken(
     _id: string,
     email: string,
     name: string,
-    admin: boolean,
     rememberMe = false,
+    roles: Role[] = [Role.User],
   ): Promise<string> {
     const secret: string = this.config.get('JWT_SECRET');
     const payload: IJWTInfo = {
       _id,
       email,
       name,
-      admin,
+      roles,
     };
 
     let expiresIn = this.config.get('JWT_EXPIRATION_TIME_SHORT');
@@ -151,6 +152,25 @@ export class AuthService {
       });
     } catch (error) {
       console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_SEND_OTP,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async sendOTP(email: string) {
+    try {
+      const otp = Math.floor(100000 + Math.random() * 900000);
+
+      await this.otpService.create(email, otp.toString());
+      await this.mailService.sendUserConfirmation(email, otp.toString());
+
+      return handleResponseSuccess({
+        data: null,
+        message: SEND_OTP_SUCCESS,
+      });
+    } catch (error) {
       return handleResponseFailure({
         error: error.response?.error || ERROR_SEND_OTP,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,

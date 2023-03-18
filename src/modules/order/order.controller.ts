@@ -20,7 +20,7 @@ import { Request } from 'express';
 import { MomoPaymentDTO, SignatureDTO } from '../../dto/request';
 import { OrderService } from './order.service';
 import { ValidateMongoId } from '../../utils/validate-pipe';
-import { OrderStatus } from '../../constances/enum';
+import { OrderStatus, Role } from '../../constances/enum';
 
 @ApiTags('Order')
 @Controller('order')
@@ -47,18 +47,13 @@ export class OrderController {
     return this.orderService.getOrdresDashboard(status, query);
   }
 
-  @Get('/dashboard/detail/:id')
-  getOrderDetail(@Param('id') id: OrderStatus) {
-    return this.orderService.getOrderById(id, true);
-  }
-
   @ApiBearerAuth('access_token')
   @UseGuards(JwtGuard)
   @Get('/detail/:id')
   getOrderById(@Param('id') id: OrderStatus, @Req() req: Request) {
     return this.orderService.getOrderById(
       id,
-      (req.user as IJWTInfo).admin,
+      (req.user as IJWTInfo).roles.includes(Role.Admin),
       (req.user as IJWTInfo)._id,
     );
   }
@@ -70,7 +65,7 @@ export class OrderController {
     return this.orderService.getOrders(
       status,
       (req.user as IJWTInfo)._id,
-      (req.user as IJWTInfo).admin,
+      (req.user as IJWTInfo).roles.includes(Role.Admin),
     );
   }
 
