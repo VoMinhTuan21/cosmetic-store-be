@@ -381,7 +381,6 @@ export class OrderService {
   }
 
   async getOrderItemDetailClient(orderItem: OrderItemDocument) {
-    console.log('orderItem: ', orderItem);
     const product = await this.productService.getProductByProductItemId(
       orderItem.productItem as string,
     );
@@ -390,7 +389,6 @@ export class OrderService {
       orderItem.productItem as string,
     );
 
-    console.log('productItem.comments: ', productItem.comments);
     const comment = (productItem.comments as CommentDocument[]).find(
       (item) => item.orderItem.toString() === orderItem._id.toString(),
     );
@@ -417,7 +415,8 @@ export class OrderService {
     }
 
     const orderItemDetail: OrderItemClientResDTO = {
-      _id: orderItem.productItem as string,
+      _id: orderItem._id,
+      productItemId: productItem._id,
       name: [
         {
           language: 'vi',
@@ -472,7 +471,7 @@ export class OrderService {
     }
 
     const orderItemDetail: OrderItemAdminResDTO = {
-      _id: orderItem.productItem as string,
+      _id: orderItem._id,
       name: nameVi,
       thumbnail: await this.cloudinaryService.getImageUrl(
         productItem.thumbnail,

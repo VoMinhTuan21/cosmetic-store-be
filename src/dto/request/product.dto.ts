@@ -268,15 +268,28 @@ export class CreateCommentDTO {
   @ApiProperty({ type: String })
   @IsMongoId()
   @IsNotEmpty()
-  userId: string;
-
-  @ApiProperty({ type: String })
-  @IsMongoId()
-  @IsNotEmpty()
-  producItemId: string;
+  productItemId: string;
 
   @ApiProperty({ type: String })
   @IsMongoId()
   @IsNotEmpty()
   orderItemId: string;
+}
+
+export class UpdateCommentDTO {
+  @ApiProperty({ type: String })
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => parseInt(value))
+  rate: number;
+
+  @ApiProperty({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  content: string;
+
+  @ApiProperty({ type: String })
+  @IsMongoId()
+  @IsNotEmpty()
+  productItemId: string;
 }
