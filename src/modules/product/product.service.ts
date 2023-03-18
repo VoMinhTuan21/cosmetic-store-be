@@ -45,6 +45,8 @@ import {
   ADD_PROD_ITEM_QUANTITY_SUCCESS,
   ERROR_CREATE_COMMENT,
   CREATE_COMMENT_SUCCESS,
+  UPDATE_COMMENT_SUCCESS,
+  ERROR_UPDATE_COMMENT,
 } from '../../constances';
 import {
   CreateCommentDTO,
@@ -52,6 +54,7 @@ import {
   CreateProductItemDTO,
   LoadMorePagination,
   ProductItemsByCategoryAndOptionsDTO,
+  UpdateCommentDTO,
   UpdateProductDTO,
   UpdateProductItemDTO,
 } from '../../dto/request';
@@ -1254,18 +1257,18 @@ export class ProductService {
     }
   }
 
-  async createComment(dto: CreateCommentDTO) {
+  async createComment(dto: CreateCommentDTO, userId: string) {
     try {
       const newComment = await this.commentModel.create({
         rate: dto.rate,
         content: dto.content,
-        user: dto.userId,
+        user: userId,
         orderItem: dto.orderItemId,
       });
 
       const prodItem = await this.productItemModel
         .findByIdAndUpdate(
-          dto.producItemId,
+          dto.productItemId,
           {
             $push: { comments: newComment._id },
           },
@@ -1273,26 +1276,70 @@ export class ProductService {
         )
         .populate('comments');
 
-      console.log('prodItem.comments: ', prodItem.comments);
       const newTotalRate = (prodItem.comments as CommentDocument[]).reduce(
         (totalRating, currComment) => totalRating + currComment.rate,
         0,
       );
 
-      console.log('newTotalRate: ', newTotalRate);
       prodItem.rating = newTotalRate / prodItem.comments.length;
 
       await prodItem.save();
 
       return handleResponseSuccess({
         message: CREATE_COMMENT_SUCCESS,
-        data: '',
+        data: {
+          _id: newComment._id,
+          rate: newComment.rate,
+          content: newComment.content,
+        },
       });
     } catch (error) {
       console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_CREATE_COMMENT,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateComment(dto: UpdateCommentDTO, commentId: string) {
+    try {
+      const comment = await this.commentModel.findByIdAndUpdate(
+        commentId,
+        {
+          rate: dto.rate,
+          content: dto.content,
+        },
+        { new: true },
+      );
+
+      // re-calculate rating for product item
+      const prodItem = await this.productItemModel
+        .findById(dto.productItemId, 'rating comments')
+        .populate('comments');
+
+      const newTotalRate = (prodItem.comments as CommentDocument[]).reduce(
+        (totalRating, currComment) => totalRating + currComment.rate,
+        0,
+      );
+
+      prodItem.rating = newTotalRate / prodItem.comments.length;
+
+      await prodItem.save();
+
+      return handleResponseSuccess({
+        message: UPDATE_COMMENT_SUCCESS,
+        data: {
+          _id: comment._id,
+          rate: comment.rate,
+          content: comment.content,
+        },
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_UPDATE_COMMENT,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }

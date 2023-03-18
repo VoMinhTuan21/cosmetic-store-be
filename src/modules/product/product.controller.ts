@@ -7,14 +7,13 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import {
-  FileFieldsInterceptor,
-  FilesInterceptor,
-} from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import {
   CreateProductItemDTO,
   CreateProductDTO,
@@ -25,10 +24,12 @@ import {
   LoadMorePagination,
   SearchProductDTO,
   CreateCommentDTO,
+  UpdateCommentDTO,
 } from '../../dto/request';
-import { imageFileFilter } from '../../utils/image-file-filter';
+import { JwtGuard } from '../../guards/jwt.guard';
 import { ValidateMongoId } from '../../utils/validate-pipe';
 import { ProductService } from './product.service';
+import { Request } from 'express';
 
 @ApiTags('Product')
 @Controller('product')
@@ -176,8 +177,20 @@ export class ProductController {
     return this.productService.recommendCF(id);
   }
 
+  @ApiBearerAuth('access_token')
+  @UseGuards(JwtGuard)
   @Post('/comment')
-  createComment(@Body() body: CreateCommentDTO) {
-    return this.productService.createComment(body);
+  createComment(@Body() body: CreateCommentDTO, @Req() req: Request) {
+    return this.productService.createComment(body, (req.user as IJWTInfo)._id);
+  }
+
+  @ApiBearerAuth('access_token')
+  @UseGuards(JwtGuard)
+  @Put('/comment/:commentId')
+  updateComment(
+    @Body() body: UpdateCommentDTO,
+    @Param('commentId', ValidateMongoId) commentId: string,
+  ) {
+    return this.productService.updateComment(body, commentId);
   }
 }

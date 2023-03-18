@@ -4,6 +4,7 @@ import { AddressResDTO } from './user.dto';
 
 export class OrderItemClientResDTO {
   _id: string;
+  productItemId: string;
   name: ITranslate[];
   quantity: number;
   price: number;
