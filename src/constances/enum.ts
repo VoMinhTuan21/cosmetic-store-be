@@ -21,3 +21,13 @@ export enum OrderStatus {
   Cancelled = 'cancelled',
   NotAcceptOrder = 'notAcceptOrder',
 }
+
+export enum AdminRole {
+  Main = 'main',
+  Secondary = 'secondary',
+}
+
+export enum Role {
+  User = 'user',
+  Admin = 'admin',
+}

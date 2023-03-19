@@ -32,6 +32,7 @@ import {
   GET_ADDRESSES_SUCCESS,
   UPDATE_ADDRESS_SUCCESS,
 } from '../../constances';
+import { Role } from '../../constances/enum';
 
 import {
   DefaultUser,
@@ -64,7 +65,7 @@ export class UserService {
         _id: user._id,
         name: user.name,
         email: user.email,
-        admin: false,
+        roles: [Role.User],
       };
     }
 
@@ -78,7 +79,7 @@ export class UserService {
         _id: user._id,
         name: user.name,
         email: user.email,
-        admin: false,
+        roles: [Role.User],
       };
     }
 
@@ -96,7 +97,7 @@ export class UserService {
       _id: user._id,
       name: user.name,
       email: user.email,
-      admin: false,
+      roles: [Role.User],
     };
   }
 
