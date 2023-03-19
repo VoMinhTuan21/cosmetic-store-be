@@ -47,12 +47,18 @@ import {
   CREATE_COMMENT_SUCCESS,
   UPDATE_COMMENT_SUCCESS,
   ERROR_UPDATE_COMMENT,
+  ERROR_GET_RATING_AND_COMMENT,
+  GET_RATING_AND_COMMENT_SUCCESS,
+  ERROR_GET_COMMENT_PAGINATION,
+  GET_COMMENT_PAGINATION_SUCCESS,
 } from '../../constances';
 import {
+  CommentPagination,
   CreateCommentDTO,
   CreateProductDTO,
   CreateProductItemDTO,
   LoadMorePagination,
+  PagePagination,
   ProductItemsByCategoryAndOptionsDTO,
   UpdateCommentDTO,
   UpdateProductDTO,
@@ -908,11 +914,7 @@ export class ProductService {
         data: {
           productItems,
           variationList,
-          productInfo: {
-            descriptions: product.description,
-            rating: 0,
-            commemts: [],
-          },
+          descriptions: product.description,
         },
       });
     } catch (error) {
@@ -1340,6 +1342,94 @@ export class ProductService {
       return handleResponseFailure({
         error: ERROR_UPDATE_COMMENT,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getRating(prodItemId: string) {
+    try {
+      const prodItem = await this.productItemModel
+        .findById(prodItemId, 'rating comments')
+        .populate({
+          path: 'comments',
+          populate: {
+            path: 'user',
+            select: 'name',
+          },
+          select: 'rate',
+        });
+
+      const rateType: IRateCount[] = [];
+      for (const comment of prodItem.comments as CommentDocument[]) {
+        const rateFound = rateType.find((item) => item.rate === comment.rate);
+        if (rateFound) {
+          rateFound.count++;
+        } else {
+          rateType.push({
+            rate: comment.rate,
+            count: 1,
+          });
+        }
+      }
+
+      return handleResponseSuccess({
+        message: GET_RATING_AND_COMMENT_SUCCESS,
+        data: {
+          rating: Math.round(prodItem.rating * 10) / 10,
+          rateType,
+        },
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_RATING_AND_COMMENT,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getCommentPagination(prodItemId: string, query: CommentPagination) {
+    try {
+      const prodItem = await this.productItemModel
+        .findById(prodItemId, 'comments')
+        .populate({
+          path: 'comments',
+          populate: {
+            path: 'user',
+            select: 'name',
+          },
+          select: 'content user rate createdAt',
+        });
+
+      let comments: CommentDocument[] = [];
+      if (query.rate) {
+        comments = (prodItem.comments as CommentDocument[])
+          .reverse()
+          .filter((item) => item.rate === query.rate);
+      } else {
+        comments = (prodItem.comments as CommentDocument[]).reverse();
+      }
+
+      const tempTotalPage = Math.floor(comments.length / query.limit);
+
+      return handleResponseSuccess({
+        data: {
+          data: comments.slice(
+            (query.page - 1) * query.limit,
+            (query.page - 1) * query.limit + query.limit,
+          ),
+          totalPage:
+            comments.length % query.limit === 0
+              ? tempTotalPage
+              : tempTotalPage + 1,
+        },
+        message: GET_COMMENT_PAGINATION_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_COMMENT_PAGINATION,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }

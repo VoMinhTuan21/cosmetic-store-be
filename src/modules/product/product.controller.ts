@@ -25,6 +25,8 @@ import {
   SearchProductDTO,
   CreateCommentDTO,
   UpdateCommentDTO,
+  PagePagination,
+  CommentPagination,
 } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { ValidateMongoId } from '../../utils/validate-pipe';
@@ -136,6 +138,21 @@ export class ProductController {
   @Get('/product-items')
   getProductItems() {
     return this.productService.getProductItems();
+  }
+
+  @Get('/product-detail/:prodItemId/rating')
+  getRatingAndComment(
+    @Param('prodItemId', ValidateMongoId) prodItemId: string,
+  ) {
+    return this.productService.getRating(prodItemId);
+  }
+
+  @Get('/product-detail/:prodItemId/comment/pagination')
+  getCommentPagination(
+    @Param('prodItemId', ValidateMongoId) prodItemId: string,
+    @Query() query: CommentPagination,
+  ) {
+    return this.productService.getCommentPagination(prodItemId, query);
   }
 
   @Get('/product-detail/:productId/:itemId')
