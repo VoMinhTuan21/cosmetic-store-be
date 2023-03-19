@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import mongoose from 'mongoose';
-import { Translation } from './common.dto';
+import { PagePagination, Translation } from './common.dto';
 
 export class CreateProductItemDTO {
   @ApiProperty({
@@ -292,4 +292,13 @@ export class UpdateCommentDTO {
   @IsMongoId()
   @IsNotEmpty()
   productItemId: string;
+}
+
+export class CommentPagination extends PagePagination {
+  @ApiPropertyOptional({ type: String })
+  @IsNumber()
+  @IsOptional()
+  @IsNotEmpty()
+  @Transform(({ value }) => parseInt(value))
+  rate?: number;
 }

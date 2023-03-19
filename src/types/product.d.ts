@@ -45,3 +45,8 @@ declare interface IVariationList {
     value: ITranslate[];
   }[];
 }
+
+declare interface IRateCount {
+  rate: number;
+  count: number;
+}
