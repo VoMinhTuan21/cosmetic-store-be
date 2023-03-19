@@ -1,9 +1,22 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { Role } from '../../constances/enum';
 import { Roles } from '../../decorator/role.decorator';
-import { CreateAdminDTO, SignInAdminDTO } from '../../dto/request';
+import {
+  ChangePassDTO,
+  CreateAdminDTO,
+  SignInAdminDTO,
+  UpdateAdminDTO,
+} from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { RolesGuard } from '../../guards/role.guard';
 import { AdminService } from './admin.service';
@@ -30,5 +43,23 @@ export class AdminController {
   @UseGuards(JwtGuard)
   getAdminInfo(@Req() req: Request) {
     return this.adminService.getuserInfo((req.user as IJWTInfo)._id);
+  }
+
+  @Put()
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
+  updateInfo(@Body() dto: UpdateAdminDTO, @Req() req: Request) {
+    return this.adminService.updateInfo((req.user as IJWTInfo)._id, dto);
+  }
+
+  @Put('/change-pass')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
+  changePass(@Body() dto: ChangePassDTO, @Req() req: Request) {
+    return this.adminService.changePass((req.user as IJWTInfo)._id, dto);
   }
 }

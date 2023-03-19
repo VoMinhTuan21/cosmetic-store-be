@@ -50,3 +50,9 @@ export class SignInAdminDTO extends PickType(CreateAdminDTO, [
   'email',
   'password',
 ] as const) {}
+
+export class UpdateAdminDTO extends PickType(CreateAdminDTO, [
+  'birthday',
+  'gender',
+  'name',
+] as const) {}

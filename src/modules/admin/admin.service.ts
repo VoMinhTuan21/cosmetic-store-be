@@ -4,18 +4,27 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
+  CHANGE_PASS_SUCCESS,
   CREATE_ADMIN_SUCCESS,
+  ERROR_CHANGE_PASS,
   ERROR_CREATE_ADDRESS,
   ERROR_EMAIL_HAS_BEEN_USED,
   ERROR_GET_ADMIN_INFO,
   ERROR_PASSWORD_NOT_MATCH,
   ERROR_SIGN_IN_ADMIN,
+  ERROR_UPDATE_ADMIN,
   ERROR_USER_NOT_EXIST,
   GET_ADMIN_INFO_SUCCESS,
   SIGN_IN_ADMIN_SUCCESS,
+  UPDATE_ADMIN_SUCCESS,
 } from '../../constances';
 import { AdminRole, Role } from '../../constances/enum';
-import { CreateAdminDTO, SignInAdminDTO } from '../../dto/request';
+import {
+  ChangePassDTO,
+  CreateAdminDTO,
+  SignInAdminDTO,
+  UpdateAdminDTO,
+} from '../../dto/request';
 import { AdminResDTO } from '../../dto/response';
 import { Admin, AdminDocument } from '../../schemas';
 import {
@@ -125,6 +134,56 @@ export class AdminService {
       return handleResponseFailure({
         error: ERROR_GET_ADMIN_INFO,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateInfo(id: string, dto: UpdateAdminDTO) {
+    try {
+      const admin = await this.adminModel.findById(id);
+
+      admin.name = dto.name;
+      admin.birthday = dto.birthday;
+      admin.gender = dto.gender;
+
+      await admin.save();
+
+      return handleResponseSuccess({
+        data: this.mapper.map(admin, Admin, AdminResDTO),
+        message: UPDATE_ADMIN_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_UPDATE_ADMIN,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async changePass(id: string, dto: ChangePassDTO) {
+    try {
+      const admin = await this.adminModel.findById(id);
+
+      const matchPass = await comparePassword(dto.oldPass, admin.password);
+
+      if (!matchPass) {
+        return handleResponseFailure({
+          error: ERROR_PASSWORD_NOT_MATCH,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
+      admin.password = hashPasswords(dto.newPass);
+      await admin.save();
+
+      return handleResponseSuccess({
+        data: CHANGE_PASS_SUCCESS,
+        message: CHANGE_PASS_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_CHANGE_PASS,
+        statusCode: error.response.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }
