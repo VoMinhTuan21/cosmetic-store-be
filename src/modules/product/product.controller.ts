@@ -31,7 +31,10 @@ import {
 import { JwtGuard } from '../../guards/jwt.guard';
 import { ValidateMongoId } from '../../utils/validate-pipe';
 import { ProductService } from './product.service';
-import { Request } from 'express';
+import { query, Request } from 'express';
+import { Role } from '../../constances/enum';
+import { Roles } from '../../decorator/role.decorator';
+import { RolesGuard } from '../../guards/role.guard';
 
 @ApiTags('Product')
 @Controller('product')
@@ -39,11 +42,19 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   createProduct(@Body() dto: CreateProductDTO) {
     return this.productService.createProduct(dto);
   }
 
   @Post('/item')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileFieldsInterceptor([
@@ -65,16 +76,28 @@ export class ProductController {
   }
 
   @Get('/list-name')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   getProductNames() {
     return this.productService.getProductName();
   }
 
   @Get('/dashboard')
-  getProductDashboard() {
-    return this.productService.getProductDashboard();
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
+  getProductDashboard(@Query() query: PagePagination) {
+    return this.productService.getProductDashboard(query);
   }
 
   @Delete('/dashboard/product-item/:productId/:productItemId')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   deleteProductItem(
     @Param('productId', ValidateMongoId) productId: string,
     @Param('productItemId', ValidateMongoId) productItemId: string,
@@ -83,16 +106,28 @@ export class ProductController {
   }
 
   @Delete('/dashboard/product/:productId')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   deleteProduct(@Param('productId', ValidateMongoId) productId: string) {
     return this.productService.deleteProduct(productId);
   }
 
   @Get('/dashboard/product/:productId')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   findProductById(@Param('productId', ValidateMongoId) productId: string) {
     return this.productService.findProductById(productId);
   }
 
   @Put('/dashboard/product/:productId')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   findProductByIdAndUpdate(
     @Param('productId', ValidateMongoId) productId: string,
     @Body() body: UpdateProductDTO,
@@ -101,6 +136,10 @@ export class ProductController {
   }
 
   @Get('/dashboard/product/:productId/product-item/:itemId')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   findProdItemById(
     @Param('productId', ValidateMongoId) productId: string,
     @Param('itemId', ValidateMongoId) itemId: string,
@@ -109,6 +148,10 @@ export class ProductController {
   }
 
   @Put('/dashboard/product-item/:itemId')
+  @ApiBearerAuth('access_token')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtGuard)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileFieldsInterceptor([

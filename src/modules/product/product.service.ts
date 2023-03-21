@@ -310,7 +310,7 @@ export class ProductService {
     }
   }
 
-  async getProductDashboard() {
+  async getProductDashboard(query: PagePagination) {
     try {
       const products = await this.productModel.aggregate([
         { $unwind: '$name' },
@@ -392,8 +392,14 @@ export class ProductService {
         },
       ]);
 
-      return handleResponseSuccess<ProductDashboardTableDTO[]>({
-        data: products,
+      return handleResponseSuccess({
+        data: {
+          data: products.slice(
+            query.page * query.limit,
+            query.page * query.limit + query.limit,
+          ),
+          total: products.length,
+        },
         message: GET_PRODUCT_DASHBOARD_TABLE_SUCCESS,
       });
     } catch (error) {
@@ -564,7 +570,9 @@ export class ProductService {
       prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
         prodItem.thumbnail,
       );
-      let images: string[] = [];
+
+      const images: string[] = [];
+
       for (let i = 0; i < prodItem.images.length; i++) {
         const publicId = prodItem.images[i];
         const url = await this.cloudinaryService.getImageUrl(publicId);

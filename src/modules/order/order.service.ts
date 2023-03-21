@@ -276,14 +276,14 @@ export class OrderService {
     }
   }
 
-  async getOrders(type: OrderStatus, user: string, admin: boolean) {
+  async getOrders(type: OrderStatus, user: string) {
     try {
       const orders = await this.orderModel.find({ status: type, user: user });
 
       const result: OrderResDTO[] = [];
 
       for (const order of orders) {
-        const data = await this.getOrderById(order._id, admin, user);
+        const data = await this.getOrderById(order._id, false, user);
 
         if (data) {
           result.push(

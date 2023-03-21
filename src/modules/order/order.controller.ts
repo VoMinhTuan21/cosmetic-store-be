@@ -62,11 +62,7 @@ export class OrderController {
   @UseGuards(JwtGuard)
   @Get('/status/:status')
   getOrders(@Param('status') status: OrderStatus, @Req() req: Request) {
-    return this.orderService.getOrders(
-      status,
-      (req.user as IJWTInfo)._id,
-      (req.user as IJWTInfo).roles.includes(Role.Admin),
-    );
+    return this.orderService.getOrders(status, (req.user as IJWTInfo)._id);
   }
 
   @Get('/:orderId')
