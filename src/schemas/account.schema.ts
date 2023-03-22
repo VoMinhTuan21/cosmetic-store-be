@@ -69,6 +69,11 @@ export class Account {
     ref: 'User',
   })
   userId: UserDocument | string;
+
+  @Prop({
+    type: String,
+  })
+  userEmail: string;
 }
 
 export const AccountSchema = SchemaFactory.createForClass(Account);

@@ -182,9 +182,10 @@ export class AuthService {
     try {
       const account = await this.accountModel.findOne({
         provider: data.account.provider,
-        providerAccountId: data.account.providerAccountId,
+        userEmail: data.user.email,
       });
 
+      // if has user and account then login
       if (account) {
         const user = await this.userService.findUserById(
           account.userId as string,
@@ -204,11 +205,12 @@ export class AuthService {
       }
 
       const user = await this.userService.findUserByEmail(data.user.email);
-
+      // if has user but not have social account
       if (user) {
         await this.accountModel.create({
           ...data.account,
           userId: user._id,
+          userEmail: user.email,
         });
 
         return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
@@ -225,6 +227,7 @@ export class AuthService {
         });
       }
 
+      // if no user and no social account
       const newUser = await this.userService.createUserForSocialLogin(
         data.user,
       );
@@ -232,6 +235,7 @@ export class AuthService {
       await this.accountModel.create({
         ...data.account,
         userId: newUser._id,
+        userEmail: newUser.email,
       });
 
       return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
@@ -293,7 +297,7 @@ export class AuthService {
 
       const account = await this.accountModel.findOne({
         provider: data.account.provider,
-        providerAccountId: data.account.providerAccountId,
+        userEmail: data.user.email,
       });
 
       if (account) {
@@ -306,6 +310,7 @@ export class AuthService {
       await this.accountModel.create({
         ...data.account,
         userId: user._id,
+        userEmail: data.user.email,
       });
 
       return handleResponseSuccess({

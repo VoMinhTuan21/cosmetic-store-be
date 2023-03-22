@@ -278,7 +278,9 @@ export class OrderService {
 
   async getOrders(type: OrderStatus, user: string) {
     try {
-      const orders = await this.orderModel.find({ status: type, user: user });
+      const orders = await this.orderModel
+        .find({ status: type, user: user })
+        .sort({ createdAt: -1 });
 
       const result: OrderResDTO[] = [];
 
@@ -322,8 +324,6 @@ export class OrderService {
           ...query,
         };
       }
-
-      console.log('query: ', query);
 
       const order = await this.orderModel
         .findOne(query)
