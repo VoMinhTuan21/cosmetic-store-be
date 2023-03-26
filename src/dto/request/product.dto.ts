@@ -231,18 +231,22 @@ export class ProductItemsByCategoryAndOptionsDTO {
 
   @ApiPropertyOptional({
     type: String,
-    enum: ['asc', 'desc'],
+    enum: ['asc', 'desc', 'def'],
   })
   @IsOptional()
   @IsString()
-  order: 'asc' | 'desc';
+  order: 'asc' | 'desc' | 'def';
 
   @ApiPropertyOptional({
+    isArray: true,
     type: String,
   })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
+  })
+  @IsMongoId({ each: true })
   @IsOptional()
-  @IsMongoId()
-  brand: string;
+  brands: string;
 }
 
 export class SearchProductDTO extends ProductItemsByCategoryAndOptionsDTO {

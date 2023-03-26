@@ -1003,7 +1003,7 @@ export class ProductService {
   async getProductByCategoryAndOptions(
     categoryId: string,
     { limit, after }: LoadMorePagination,
-    { from, to, brand, order = 'asc' }: ProductItemsByCategoryAndOptionsDTO,
+    { from, to, brands, order }: ProductItemsByCategoryAndOptionsDTO,
   ) {
     try {
       if (after === 'end') {
@@ -1035,9 +1035,9 @@ export class ProductService {
         .populate('brand', '_id name')
         .select('_id name categories brand productItems');
 
-      if (brand) {
-        products = products.filter(
-          (item) => (item.brand as BrandDocument)._id.toString() === brand,
+      if (brands) {
+        products = products.filter((item) =>
+          brands.includes((item.brand as BrandDocument)._id.toString()),
         );
       }
 
@@ -1053,7 +1053,7 @@ export class ProductService {
 
       if (order === 'desc') {
         productItems = productItems.sort((a, b) => b.price - a.price);
-      } else {
+      } else if (order === 'asc') {
         productItems = productItems.sort((a, b) => a.price - b.price);
       }
 
@@ -1083,84 +1083,84 @@ export class ProductService {
     }
   }
 
-  async search(
-    query: string,
-    { limit, after }: LoadMorePagination,
-    { from, to, brand, order = 'asc' }: ProductItemsByCategoryAndOptionsDTO,
-  ) {
-    try {
-      if (after === 'end') {
-        return handleResponseSuccess({
-          data: {
-            productItems: [],
-            after: 'end',
-          },
-          message: GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
-        });
-      }
+  // async search(
+  //   query: string,
+  //   { limit, after }: LoadMorePagination,
+  //   { from, to, brand, order = 'asc' }: ProductItemsByCategoryAndOptionsDTO,
+  // ) {
+  //   try {
+  //     if (after === 'end') {
+  //       return handleResponseSuccess({
+  //         data: {
+  //           productItems: [],
+  //           after: 'end',
+  //         },
+  //         message: GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
+  //       });
+  //     }
 
-      let products = await this.productModel
-        .find({
-          'name.value': { $regex: query, $options: 'i' },
-        })
-        .populate({
-          path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
-          select: '_id price thumbnail productConfigurations',
-        })
-        .populate('brand', '_id name')
-        .select('_id name categories brand productItems');
+  //     let products = await this.productModel
+  //       .find({
+  //         'name.value': { $regex: query, $options: 'i' },
+  //       })
+  //       .populate({
+  //         path: 'productItems',
+  //         populate: {
+  //           path: 'productConfigurations',
+  //           select: '_id value',
+  //         },
+  //         select: '_id price thumbnail productConfigurations',
+  //       })
+  //       .populate('brand', '_id name')
+  //       .select('_id name categories brand productItems');
 
-      if (brand) {
-        products = products.filter(
-          (item) => (item.brand as BrandDocument)._id.toString() === brand,
-        );
-      }
+  //     if (brand) {
+  //       products = products.filter(
+  //         (item) => (item.brand as BrandDocument)._id.toString() === brand,
+  //       );
+  //     }
 
-      let productItems = await this.convertProductDocumentToProductCard(
-        products,
-      );
+  //     let productItems = await this.convertProductDocumentToProductCard(
+  //       products,
+  //     );
 
-      if (from >= 0 && to >= 0) {
-        productItems = productItems.filter(
-          (item) => item.price >= from && item.price <= to,
-        );
-      }
+  //     if (from >= 0 && to >= 0) {
+  //       productItems = productItems.filter(
+  //         (item) => item.price >= from && item.price <= to,
+  //       );
+  //     }
 
-      if (order === 'desc') {
-        productItems = productItems.sort((a, b) => b.price - a.price);
-      } else {
-        productItems = productItems.sort((a, b) => a.price - b.price);
-      }
+  //     if (order === 'desc') {
+  //       productItems = productItems.sort((a, b) => b.price - a.price);
+  //     } else {
+  //       productItems = productItems.sort((a, b) => a.price - b.price);
+  //     }
 
-      let index = productItems.findIndex(
-        (item) => item.itemId.toString() === after,
-      );
-      if (index === -1) {
-        index = 0;
-      }
-      const data = productItems.slice(index, limit + index);
+  //     let index = productItems.findIndex(
+  //       (item) => item.itemId.toString() === after,
+  //     );
+  //     if (index === -1) {
+  //       index = 0;
+  //     }
+  //     const data = productItems.slice(index, limit + index);
 
-      return handleResponseSuccess({
-        data: {
-          data: data,
-          after:
-            index + limit >= productItems.length
-              ? 'end'
-              : productItems[index + limit].itemId,
-        },
-        message: SEARCH_PRODUCT_SUCCESS,
-      });
-    } catch (error) {
-      return handleResponseFailure({
-        error: ERROR_SEARCH_PRODUCT,
-        statusCode: HttpStatus.BAD_REQUEST,
-      });
-    }
-  }
+  //     return handleResponseSuccess({
+  //       data: {
+  //         data: data,
+  //         after:
+  //           index + limit >= productItems.length
+  //             ? 'end'
+  //             : productItems[index + limit].itemId,
+  //       },
+  //       message: SEARCH_PRODUCT_SUCCESS,
+  //     });
+  //   } catch (error) {
+  //     return handleResponseFailure({
+  //       error: ERROR_SEARCH_PRODUCT,
+  //       statusCode: HttpStatus.BAD_REQUEST,
+  //     });
+  //   }
+  // }
 
   async recommendCF(id: string) {
     try {
