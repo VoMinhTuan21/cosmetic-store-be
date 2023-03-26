@@ -227,10 +227,10 @@ export class ProductController {
     );
   }
 
-  // @Post('/search')
-  // search(@Query() query: SearchProductDTO, @Body() body: LoadMorePagination) {
-  //   return this.productService.search(query.search, body, query);
-  // }
+  @Post('/search')
+  search(@Query() query: SearchProductDTO, @Body() body: LoadMorePagination) {
+    return this.productService.search(query.search, body, query);
+  }
 
   @Get('/recommend/cf/:id')
   getRecommendCF(@Param('id') id: string) {
