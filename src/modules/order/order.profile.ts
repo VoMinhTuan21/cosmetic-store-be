@@ -65,6 +65,10 @@ export class OrderProfile extends AutomapperProfile {
           mapFrom((source) => source.paymentMethod),
         ),
         forMember(
+          (destination) => destination.refund,
+          mapFrom((source) => source.refund),
+        ),
+        forMember(
           (destination) => destination.total,
           mapFrom(
             (source) =>

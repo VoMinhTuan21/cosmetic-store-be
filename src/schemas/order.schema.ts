@@ -66,6 +66,12 @@ export class Order {
     enum: OrderStatus,
   })
   status: OrderStatus;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  refund: boolean;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

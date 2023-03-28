@@ -8,6 +8,7 @@ import { Model } from 'mongoose';
 import { MomoPaymentDTO, QueryGetOrdersDashboard } from '../../dto/request';
 import {
   MomoPaymentRes,
+  MomoRefundRes,
   OrderItemAdminResDTO,
   OrderTableResDTO,
 } from '../../dto/response/order.dto';
@@ -31,6 +32,9 @@ import {
   UPDATE_ORDER_STATUS_SUCCESS,
   GET_ORDERS_TABLE_DASHBOARD_SUCCESS,
   ERROR_GET_ORDERS_TABLE_DASHBOARD,
+  ERROR_REFUND_PAYMENT_WITH_MOMO_ORDER,
+  ERROR_CAN_NOT_REFUND_COD_PAYMENT_METHOD,
+  REFUND_PAYMENT_WITH_MOMO_SUCCESS,
 } from '../../constances';
 import { OrderStatus, PaymentMethod } from '../../constances/enum';
 import { CreateOrderDTO, CreateOrderItemDTO } from '../../dto/request';
@@ -323,8 +327,6 @@ export class OrderService {
         };
       }
 
-      console.log('query: ', query);
-
       const order = await this.orderModel
         .findOne(query)
         .populate({
@@ -365,6 +367,7 @@ export class OrderService {
           ward: address.ward,
         },
         status: order.status,
+        refund: order.refund,
       };
 
       return handleResponseSuccess({
@@ -647,6 +650,108 @@ export class OrderService {
       return handleResponseFailure({
         error: error.response?.error || ERROR_GET_ORDERS_TABLE_DASHBOARD,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async refundPaymentWithMomo(orderId: string) {
+    try {
+      const order = await this.orderModel
+        .findById(orderId)
+        .populate('orderItems');
+      if (!order) {
+        return handleResponseFailure({
+          error: ERROR_ORDER_NOT_FOUND,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      if (order.paymentMethod === PaymentMethod.COD) {
+        return handleResponseFailure({
+          error: ERROR_CAN_NOT_REFUND_COD_PAYMENT_METHOD,
+          statusCode: HttpStatus.BAD_REQUEST,
+        });
+      }
+
+      const totalProdPrice = (order.orderItems as OrderItemDocument[]).reduce(
+        (total, currOrderItem) =>
+          total + currOrderItem.quantity * currOrderItem.price,
+        0,
+      );
+
+      let refundAmount = totalProdPrice;
+
+      if (order.status === OrderStatus.Cancelled) {
+        refundAmount += order.shippingFee;
+      }
+
+      const partnerCode = this.config.get('PARTNER_CODE');
+      const accessKey = this.config.get('ACCESS_KEY');
+      const secretKey = this.config.get('SECRET_KEY');
+      const requestId = partnerCode + new Date().getTime();
+      console.log('requestId: ', requestId);
+      const description = `Hoàn tiền cho đơn hàng ${order.orderId}`;
+
+      const rawSignature =
+        'accessKey=' +
+        accessKey +
+        '&amount=' +
+        refundAmount +
+        '&description=' +
+        description +
+        '&orderId=' +
+        requestId +
+        '&partnerCode=' +
+        partnerCode +
+        '&requestId=' +
+        requestId +
+        '&transId=' +
+        order.transId;
+
+      const signature = await this.createSignature(secretKey, rawSignature);
+
+      const requestBody = JSON.stringify({
+        partnerCode: partnerCode,
+        orderId: requestId,
+        requestId: requestId,
+        amount: refundAmount,
+        transId: order.transId,
+        lang: 'vi',
+        description: description,
+        signature: signature,
+      });
+
+      const response = await this.httpService.axiosRef.post<MomoRefundRes>(
+        this.config.get('MOMO_REFUND_ONLINE_PAYMENT'),
+        requestBody,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(requestBody),
+          },
+        },
+      );
+
+      console.log('response.data.message: ', response.data.message);
+      if (response.data.resultCode !== 0) {
+        return handleResponseFailure({
+          error: ERROR_REFUND_PAYMENT_WITH_MOMO_ORDER,
+          statusCode: HttpStatus.BAD_REQUEST,
+        });
+      }
+
+      order.refund = true;
+      await order.save();
+
+      return handleResponseSuccess({
+        message: REFUND_PAYMENT_WITH_MOMO_SUCCESS,
+        data: orderId,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_REFUND_PAYMENT_WITH_MOMO_ORDER,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }
