@@ -31,3 +31,8 @@ export enum Role {
   User = 'user',
   Admin = 'admin',
 }
+
+export enum Search {
+  Id = 'id',
+  Name = 'name',
+}

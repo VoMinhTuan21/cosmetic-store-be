@@ -1,5 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { SchemaTimestampsConfig } from 'mongoose';
+import { customRandom, random } from 'nanoid';
+import { alphabet } from '../constances';
 import { BrandDocument } from './brand.schema';
 import { CategoryDocument } from './category.schema';
 import { ProductItemDocument } from './productItem.schema';
@@ -12,6 +14,13 @@ export type ProductDocument = Product & Document & SchemaTimestampsConfig;
 })
 export class Product {
   _id: string;
+
+  @Prop({
+    type: String,
+    unique: true,
+    default: customRandom(alphabet, 10, random)(),
+  })
+  productId: string;
 
   @Prop({
     type: Array<ITranslate>,

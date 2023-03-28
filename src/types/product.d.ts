@@ -11,6 +11,7 @@ declare interface IProductItem {
 declare interface ICreateProduct {
   _id: string;
   name: string;
+  productId: string;
   brand: {
     _id: string;
     name: string;

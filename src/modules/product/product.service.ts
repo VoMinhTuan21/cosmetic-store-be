@@ -1,11 +1,11 @@
 import { Mapper } from '@automapper/core';
 import { InjectMapper } from '@automapper/nestjs';
 import { HttpService } from '@nestjs/axios';
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
-import { pipeline } from 'stream';
+import { customRandom, random } from 'nanoid';
 import {
   ERROR_PRODUCT_ITEM_EXISTED,
   CREATE_PRODUCT_ITEM_SUCCESS,
@@ -51,12 +51,15 @@ import {
   GET_RATING_AND_COMMENT_SUCCESS,
   ERROR_GET_COMMENT_PAGINATION,
   GET_COMMENT_PAGINATION_SUCCESS,
+  alphabet,
 } from '../../constances';
+import { Search } from '../../constances/enum';
 import {
   CommentPagination,
   CreateCommentDTO,
   CreateProductDTO,
   CreateProductItemDTO,
+  FilterProductAdminDTO,
   LoadMorePagination,
   PagePagination,
   ProductItemsByCategoryAndOptionsDTO,
@@ -64,11 +67,7 @@ import {
   UpdateProductDTO,
   UpdateProductItemDTO,
 } from '../../dto/request';
-import {
-  ProductCardDTO,
-  ProductDashboardTableDTO,
-  ProductSimPleDTO,
-} from '../../dto/response';
+import { ProductCardDTO, ProductSimPleDTO } from '../../dto/response';
 import {
   BrandDocument,
   CommentDocument,
@@ -277,6 +276,7 @@ export class ProductService {
               productItems: '$productItems',
               brand: '$brand',
               categories: '$categories',
+              productId: '$productId',
             },
           },
         },
@@ -310,11 +310,37 @@ export class ProductService {
     }
   }
 
-  async getProductDashboard(query: PagePagination) {
+  async getProductDashboard(query: FilterProductAdminDTO) {
     try {
+      const condition: { [index: string]: any } = { 'name.language': 'vi' };
+
+      if (query.search && query.type) {
+        switch (query.type) {
+          case Search.Id:
+            condition.productId = query.search;
+            break;
+          case Search.Name:
+            condition['name.value'] = { $regex: query.search, $options: 'i' };
+          default:
+            break;
+        }
+      }
+
+      if (query.brands) {
+        condition.brand = {
+          $in: query.brands.map((item) => new mongoose.Types.ObjectId(item)),
+        };
+      }
+
+      if (query.category) {
+        condition.categories = {
+          $in: query.category.map((item) => new mongoose.Types.ObjectId(item)),
+        };
+      }
+
       const products = await this.productModel.aggregate([
         { $unwind: '$name' },
-        { $match: { 'name.language': 'vi' } },
+        { $match: condition },
         {
           $lookup: {
             from: 'productitems',
@@ -331,7 +357,6 @@ export class ProductService {
                   pipeline: [
                     { $unwind: '$value' },
                     { $match: { 'value.language': 'vi' } },
-                    // { $project: { value: 1 } },
                     {
                       $replaceRoot: {
                         newRoot: {
@@ -358,7 +383,6 @@ export class ProductService {
             pipeline: [
               { $unwind: '$name' },
               { $match: { 'name.language': 'vi' } },
-              // { $project: { name: 1 } },
               {
                 $replaceRoot: {
                   newRoot: {
@@ -387,6 +411,7 @@ export class ProductService {
               productItems: '$productItems',
               brand: '$brand',
               categories: '$categories',
+              productId: '$productId',
             },
           },
         },
