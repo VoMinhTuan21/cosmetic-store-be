@@ -35,6 +35,7 @@ export class OrderResDTO {
   shippingFee: number;
   paymentMethod: PaymentMethod;
   orderId: string;
+  refund: boolean;
 }
 
 export class OrderDetailResDTO extends OrderResDTO {
@@ -72,4 +73,15 @@ export class OrderTableResDTO extends OmitType(OrderResDTO, [
 ] as const) {
   total: number;
   orderId: string;
+}
+
+export class MomoRefundRes {
+  partnerCode: string;
+  orderId: string;
+  requestId: string;
+  amount: number;
+  transId: number;
+  resultCode: number;
+  message: string;
+  responseTime: number;
 }

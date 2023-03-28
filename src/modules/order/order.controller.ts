@@ -77,4 +77,9 @@ export class OrderController {
   ) {
     return this.orderService.updateOrderStatus(orderId, dto.status);
   }
+
+  @Post('/refund/:orderId')
+  refundPaymentWithMomo(@Param('orderId', ValidateMongoId) orderId: string) {
+    return this.orderService.refundPaymentWithMomo(orderId);
+  }
 }
