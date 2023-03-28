@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  IsEnum,
   IsMongoId,
   isNotEmpty,
   IsNotEmpty,
@@ -12,6 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import mongoose from 'mongoose';
+import { Search } from '../../constances/enum';
 import { PagePagination, Translation } from './common.dto';
 
 export class CreateProductItemDTO {
@@ -305,4 +307,45 @@ export class CommentPagination extends PagePagination {
   @IsNotEmpty()
   @Transform(({ value }) => parseInt(value))
   rate?: number;
+}
+
+export class FilterProductAdminDTO extends PagePagination {
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  search: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: Search,
+  })
+  @IsOptional()
+  @IsNotEmpty()
+  @IsEnum(Search)
+  type: Search;
+
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
+  })
+  @IsMongoId({ each: true })
+  @IsOptional()
+  brands: string[];
+
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+  })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : value.split(',');
+  })
+  @IsMongoId({ each: true })
+  @IsOptional()
+  category: string[];
 }

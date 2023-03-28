@@ -27,6 +27,7 @@ import {
   UpdateCommentDTO,
   PagePagination,
   CommentPagination,
+  FilterProductAdminDTO,
 } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { ValidateMongoId } from '../../utils/validate-pipe';
@@ -89,7 +90,7 @@ export class ProductController {
   @Roles(Role.Admin)
   @UseGuards(RolesGuard)
   @UseGuards(JwtGuard)
-  getProductDashboard(@Query() query: PagePagination) {
+  getProductDashboard(@Query() query: FilterProductAdminDTO) {
     return this.productService.getProductDashboard(query);
   }
 
@@ -115,10 +116,6 @@ export class ProductController {
   }
 
   @Get('/dashboard/product/:productId')
-  @ApiBearerAuth('access_token')
-  @Roles(Role.Admin)
-  @UseGuards(RolesGuard)
-  @UseGuards(JwtGuard)
   findProductById(@Param('productId', ValidateMongoId) productId: string) {
     return this.productService.findProductById(productId);
   }
@@ -136,10 +133,6 @@ export class ProductController {
   }
 
   @Get('/dashboard/product/:productId/product-item/:itemId')
-  @ApiBearerAuth('access_token')
-  @Roles(Role.Admin)
-  @UseGuards(RolesGuard)
-  @UseGuards(JwtGuard)
   findProdItemById(
     @Param('productId', ValidateMongoId) productId: string,
     @Param('itemId', ValidateMongoId) itemId: string,

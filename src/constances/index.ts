@@ -7,3 +7,5 @@ export * from './user-response-message';
 export * from './tag-response-message';
 export * from './order-response-message';
 export * from './admin-response-message';
+export const alphabet =
+  '0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM';
