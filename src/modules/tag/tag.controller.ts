@@ -8,7 +8,11 @@ import {
   Put,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { CreateTagDTO, UpdateTagDTO } from '../../dto/request';
+import {
+  CreateTagDTO,
+  CreateTagGroupDTO,
+  UpdateTagDTO,
+} from '../../dto/request';
 import { TagService } from './tag.service';
 
 @ApiTags('Tag')
@@ -18,7 +22,12 @@ export class TagController {
 
   @Post()
   create(@Body() dto: CreateTagDTO) {
-    return this.tagService.create(dto);
+    return this.tagService.createTag(dto);
+  }
+
+  @Post('/tag-group')
+  createTagGroup(@Body() dto: CreateTagGroupDTO) {
+    return this.tagService.createTagGroup(dto);
   }
 
   @Put()
@@ -33,6 +42,6 @@ export class TagController {
 
   @Get()
   get() {
-    return this.tagService.get();
+    return this.tagService.getTagsTable();
   }
 }

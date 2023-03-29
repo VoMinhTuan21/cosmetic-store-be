@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsMongoId, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
@@ -7,6 +7,13 @@ export class CreateTagDTO {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @ApiProperty({
+    type: String,
+  })
+  @IsMongoId()
+  @IsNotEmpty()
+  parent: string;
 
   @ApiProperty({
     type: String,
@@ -22,3 +29,7 @@ export class UpdateTagDTO extends CreateTagDTO {
   @IsNotEmpty()
   id: string;
 }
+
+export class CreateTagGroupDTO extends PickType(CreateTagDTO, [
+  'name',
+] as const) {}
