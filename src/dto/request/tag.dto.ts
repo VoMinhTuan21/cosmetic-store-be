@@ -33,3 +33,10 @@ export class UpdateTagDTO extends CreateTagDTO {
 export class CreateTagGroupDTO extends PickType(CreateTagDTO, [
   'name',
 ] as const) {}
+
+export class UpdateTagGroupDTO {
+  @ApiProperty({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+}

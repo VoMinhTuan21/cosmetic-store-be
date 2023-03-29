@@ -16,7 +16,9 @@ import {
   ERROR_TAG_GROUP_NOT_EXIST,
   ERROR_TAG_NOT_FOUND,
   ERROR_UPDATE_ADDRESS,
+  ERROR_UPDATE_TAG_GROUP,
   GET_TAGS_SUCCESS,
+  UPDATE_TAG_GROUP_SUCCESS,
   UPDATE_TAG_SUCCESS,
 } from '../../constances';
 import {
@@ -142,10 +144,13 @@ export class TagService {
 
   async delete(id: string) {
     try {
-      await this.tagModel.findByIdAndDelete(id);
+      const delTag = await this.tagModel.findByIdAndDelete(id);
 
       return handleResponseSuccess({
-        data: id,
+        data: {
+          _id: delTag._id,
+          parent: delTag.parent,
+        },
         message: DELETE_TAG_SUCCESS,
       });
     } catch (error) {
@@ -193,6 +198,28 @@ export class TagService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_TAGS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateTagGroup(tagGroupId: string, name: string) {
+    try {
+      const tagGroup = await this.tagGroupModel.findByIdAndUpdate(
+        tagGroupId,
+        {
+          name: name,
+        },
+        { new: true },
+      );
+      return handleResponseSuccess({
+        message: UPDATE_TAG_GROUP_SUCCESS,
+        data: this.mapper.map(tagGroup, TagGroup, TagGroupResDTO),
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_UPDATE_TAG_GROUP,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

@@ -12,7 +12,9 @@ import {
   CreateTagDTO,
   CreateTagGroupDTO,
   UpdateTagDTO,
+  UpdateTagGroupDTO,
 } from '../../dto/request';
+import { ValidateMongoId } from '../../utils/validate-pipe';
 import { TagService } from './tag.service';
 
 @ApiTags('Tag')
@@ -43,5 +45,13 @@ export class TagController {
   @Get()
   get() {
     return this.tagService.getTagsTable();
+  }
+
+  @Put('/tag-group/:tagGroupId')
+  updateTagGroup(
+    @Param('tagGroupId', ValidateMongoId) tagGroupId: string,
+    @Body() body: UpdateTagGroupDTO,
+  ) {
+    return this.tagService.updateTagGroup(tagGroupId, body.name);
   }
 }
