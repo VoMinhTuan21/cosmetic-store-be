@@ -124,6 +124,8 @@ export class TagService {
     try {
       const tag = await this.tagModel.findById(dto.id);
 
+      const currentParent = tag.parent;
+
       if (!tag) {
         return handleResponseFailure({
           error: ERROR_TAG_NOT_FOUND,
@@ -133,10 +135,14 @@ export class TagService {
 
       tag.name = dto.name;
       tag.weight = dto.weight;
+      tag.parent = dto.parent;
       await tag.save();
 
       return handleResponseSuccess({
-        data: this.mapper.map(tag, Tag, TagResDTO),
+        data: {
+          ...this.mapper.map(tag, Tag, TagResDTO),
+          oldParent: currentParent,
+        },
         message: UPDATE_TAG_SUCCESS,
       });
     } catch (error) {
