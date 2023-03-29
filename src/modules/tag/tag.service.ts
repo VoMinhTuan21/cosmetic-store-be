@@ -6,14 +6,17 @@ import mongoose, { Model } from 'mongoose';
 import {
   CREATE_TAG_GROUP_SUCCESS,
   CREATE_TAG_SUCCESS,
+  DELETE_TAG_GROUP_SUCCESS,
   DELETE_TAG_SUCCESS,
   ERROR_CREATE_TAG,
   ERROR_CREATE_TAG_GROUP,
   ERROR_DELETE_TAG,
+  ERROR_DELETE_TAG_GROUP,
   ERROR_GET_TAGS,
   ERROR_TAG_EXISTED,
   ERROR_TAG_GROUP_EXISTED,
   ERROR_TAG_GROUP_NOT_EXIST,
+  ERROR_TAG_IS_BEING_USED_BY_PRODUCT_ITEM,
   ERROR_TAG_NOT_FOUND,
   ERROR_UPDATE_ADDRESS,
   ERROR_UPDATE_TAG_GROUP,
@@ -38,6 +41,7 @@ import {
   handleResponseFailure,
   handleResponseSuccess,
 } from '../../utils/handle-response';
+import { ProductService } from '../product/product.service';
 
 @Injectable()
 export class TagService {
@@ -47,6 +51,7 @@ export class TagService {
     @InjectModel(TagGroup.name)
     private readonly tagGroupModel: Model<TagGroupDocument>,
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly productService: ProductService,
   ) {}
 
   async createTag(dto: CreateTagDTO) {
@@ -144,19 +149,37 @@ export class TagService {
 
   async delete(id: string) {
     try {
-      const delTag = await this.tagModel.findByIdAndDelete(id);
+      const isUsed = await this.productService.checkTagIsUsedByProductItem(id);
+
+      if (isUsed) {
+        return handleResponseFailure({
+          error: ERROR_TAG_IS_BEING_USED_BY_PRODUCT_ITEM,
+          statusCode: HttpStatus.NOT_ACCEPTABLE,
+        });
+      }
+
+      const tag = await this.tagModel.findById(id);
+
+      if (!tag) {
+        return handleResponseFailure({
+          error: ERROR_TAG_NOT_FOUND,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      await this.tagModel.findByIdAndDelete(id);
 
       return handleResponseSuccess({
         data: {
-          _id: delTag._id,
-          parent: delTag.parent,
+          _id: id,
+          parent: tag.parent,
         },
         message: DELETE_TAG_SUCCESS,
       });
     } catch (error) {
       return handleResponseFailure({
-        error: ERROR_DELETE_TAG,
-        statusCode: HttpStatus.BAD_REQUEST,
+        error: error.response?.error || ERROR_DELETE_TAG,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }
@@ -199,6 +222,52 @@ export class TagService {
       return handleResponseFailure({
         error: ERROR_GET_TAGS,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async deleteTagGroup(id: string) {
+    try {
+      const tagGroup = await this.tagGroupModel.findById(id);
+
+      if (!tagGroup) {
+        return handleResponseFailure({
+          error: ERROR_TAG_GROUP_NOT_EXIST,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      const tags = await this.tagModel.find({
+        parent: new mongoose.Types.ObjectId(id),
+      });
+
+      for (const tag of tags) {
+        const isUsed = await this.productService.checkTagIsUsedByProductItem(
+          tag._id.toString(),
+        );
+
+        if (isUsed) {
+          return handleResponseFailure({
+            error: `TAG_${tag._id}_IS_BEING_USED_BY_PRODUCT_ITEM`,
+            statusCode: HttpStatus.NOT_ACCEPTABLE,
+          });
+        }
+      }
+
+      for (const tag of tags) {
+        await this.delete(tag._id.toString());
+      }
+
+      await tagGroup.delete();
+
+      return handleResponseSuccess({
+        data: id,
+        message: DELETE_TAG_GROUP_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_DELETE_TAG_GROUP,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }

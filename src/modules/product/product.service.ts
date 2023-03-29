@@ -1466,4 +1466,15 @@ export class ProductService {
       });
     }
   }
+
+  async checkTagIsUsedByProductItem(tagId: string) {
+    const productItem = await this.productItemModel.findOne({
+      tags: new mongoose.Types.ObjectId(tagId),
+    });
+    if (productItem) {
+      return true;
+    }
+
+    return false;
+  }
 }

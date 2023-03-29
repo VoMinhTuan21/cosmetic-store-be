@@ -37,6 +37,11 @@ export class TagController {
     return this.tagService.update(dto);
   }
 
+  @Delete('/tag-group/:id')
+  deleteTagGroup(@Param('id') id: string) {
+    return this.tagService.deleteTagGroup(id);
+  }
+
   @Delete('/:id')
   delete(@Param('id') id: string) {
     return this.tagService.delete(id);
