@@ -66,7 +66,7 @@ export class TagService {
 
       const tag = await this.tagModel.findOne({ name: dto.name });
 
-      if (tag && tag.parent.toString() !== dto.parent) {
+      if (tag && tag.parent.toString() === dto.parent) {
         return handleResponseFailure({
           error: ERROR_TAG_EXISTED,
           statusCode: HttpStatus.CONFLICT,
@@ -84,6 +84,7 @@ export class TagService {
         message: CREATE_TAG_SUCCESS,
       });
     } catch (error) {
+      console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_CREATE_TAG,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
