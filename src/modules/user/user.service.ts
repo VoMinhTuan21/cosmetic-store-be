@@ -407,6 +407,14 @@ export class UserService {
     }
   }
 
+  async getUsersTemp() {
+    const users = await this.userModel.find({
+      email: { $regex: 'hygge', $options: 'i' },
+    });
+
+    return users.map((user) => user._id.toString());
+  }
+
   async createTempUser(name: string, email: string) {
     try {
       const userEmail = await this.userModel.findOne({ email: email });

@@ -1477,4 +1477,14 @@ export class ProductService {
 
     return false;
   }
+
+  async ramdomProdutItem() {
+    const productItems = await this.productItemModel.find();
+
+    const random = shuffle(productItems);
+
+    return random
+      .slice(0, 10)
+      .map((item) => ({ id: item._id, price: item.price }));
+  }
 }

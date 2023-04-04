@@ -82,4 +82,14 @@ export class OrderController {
   refundPaymentWithMomo(@Param('orderId', ValidateMongoId) orderId: string) {
     return this.orderService.refundPaymentWithMomo(orderId);
   }
+
+  @Post('/create-temp-orders')
+  createTempOrder() {
+    return this.orderService.createTempOrders();
+  }
+
+  @Post('/create-sample-orders')
+  createSampleOrder() {
+    return this.orderService.createTempOrders();
+  }
 }

@@ -59,6 +59,76 @@ import {
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { ProductService } from '../product/product.service';
 import { generateOrderId, generateString } from '../../utils/random-string';
+import { UserService } from '../user/user.service';
+
+const positive = [
+  'Sản phẩm đến nhanh chóng và chất lượng tuyệt vời.',
+  'Tôi rất hài lòng với chất lượng sản phẩm và dịch vụ của bạn.',
+  'Sản phẩm hoàn toàn như mô tả trên trang web và đáng giá tiền bỏ ra.',
+  'Tôi đã mua sản phẩm này cho người thân và họ rất thích nó.',
+  'Tôi sẽ quay lại mua sản phẩm của bạn trong tương lai.',
+  'Sản phẩm rất đẹp và chất lượng tốt hơn cả những gì tôi mong đợi.',
+  'Giao hàng rất nhanh và sản phẩm được đóng gói cẩn thận.',
+  'Tôi đã mua sản phẩm này và đã giới thiệu cho bạn bè của tôi.',
+  'Sản phẩm rất tiện lợi và đáng giá để đầu tư.',
+  'Tôi rất cảm kích về dịch vụ khách hàng của bạn, họ rất nhiệt tình và thân thiện.',
+  'Sản phẩm chất lượng và giá cả phải chăng.',
+  'Tôi rất hài lòng với trải nghiệm mua sắm của mình trên trang web của bạn.',
+  'Sản phẩm đáp ứng được tất cả những gì tôi mong đợi và tôi rất vui vì đã mua nó.',
+  'Giao hàng rất nhanh và sản phẩm được đóng gói rất chắc chắn.',
+  'Tôi đã mua sản phẩm này cho bản thân và tôi yêu nó.',
+  'Sản phẩm rất đẹp và chất lượng tốt, đáng giá để mua.',
+  'Tôi đã mua sản phẩm này cho người thân và họ rất thích nó.',
+  'Tôi sẽ giới thiệu sản phẩm này cho những người khác và mua nó trở lại.',
+  'Tôi đã mua sản phẩm này và tôi rất hài lòng với chất lượng và giá cả.',
+  'Sản phẩm rất tốt và đáng giá để đầu tư, tôi sẽ mua nó lần nữa.',
+];
+
+const negative = [
+  'Sản phẩm đến tay tôi bị hỏng, không giống như hình ảnh trên website.',
+  'Giao hàng quá chậm, tôi đã phải chờ đợi hơn 2 tuần để sản phẩm đến.',
+  'Thiết kế sản phẩm rất tệ, tôi không thể sử dụng được như mong đợi.',
+  'Chất lượng sản phẩm rất kém, tôi đã phải đền bù thêm chi phí để sửa chữa.',
+  'Tôi đã nhận được sản phẩm không đúng với mô tả trên website.',
+  'Sản phẩm bị vỡ khi đến tay tôi, do không được đóng gói cẩn thận.',
+  'Dịch vụ khách hàng rất tồi, tôi đã phải chờ đợi quá lâu để được giải quyết vấn đề của mình.',
+  'Sản phẩm không hoạt động như quảng cáo, tôi đã phải trả lại sản phẩm và đòi lại tiền.',
+  'Tôi đã nhận được sản phẩm đã qua sử dụng, rất thất vọng về chất lượng dịch vụ.',
+  'Sản phẩm không đúng kích thước như tôi đã đặt trên website.',
+  'Tôi đã nhận được sản phẩm sai màu sắc so với mô tả trên website.',
+  'Sản phẩm không đáp ứng được yêu cầu của tôi, tôi đã phải trả lại và tìm mua sản phẩm khác.',
+  'Tôi đã nhận được sản phẩm bị hỏng, nhưng không được hỗ trợ đổi trả từ nhà bán hàng.',
+  'Sản phẩm đến quá trễ, tôi đã phải mua sản phẩm khác ở cửa hàng để đáp ứng nhu cầu của mình.',
+  'Tôi đã nhận được sản phẩm không đầy đủ phụ kiện như mô tả trên website.',
+  'Dịch vụ giao hàng rất tệ, nhân viên giao hàng không thân thiện và không chuyên nghiệp.',
+  'Sản phẩm bị lỗi kỹ thuật, tôi đã phải đưa sản phẩm đến cửa hàng để sửa chữa.',
+  'Sản phẩm bị lỗi kỹ thuật, tôi đã phải đưa sản phẩm đến cửa hàng để sửa chữa.',
+  'Sản phẩm không đúng với giá tiền tôi đã thanh toán.',
+  'Tôi đã nhận được sản phẩm rất khác so với hình ảnh trên website, rất thất vọng.',
+];
+
+const normal = [
+  'Sản phẩm này khá ổn định, tuy nhiên không có gì đặc biệt.',
+  'Tôi cảm thấy sản phẩm này đáng giá với giá tiền mà tôi đã bỏ ra.',
+  'Sản phẩm này không gây kích ứng da, tuy nhiên hiệu quả không được như tôi mong đợi.',
+  'Tôi không thể nói rằng sản phẩm này là tốt nhất, nhưng cũng không phải là tệ.',
+  'Đó là sản phẩm mỹ phẩm tốt, tuy nhiên giá cả hơi cao đối với tôi.',
+  'Sản phẩm này hoàn toàn phù hợp với nhu cầu của tôi, tuy nhiên không có nhiều lựa chọn về màu sắc.',
+  'Tôi đánh giá sản phẩm này là trung bình, không có gì đặc sắc và cũng không có điểm tồi.',
+  'Sản phẩm này không gây kích ứng da nhưng tôi không thấy hiệu quả như tôi kỳ vọng.',
+  'Tôi thấy sản phẩm này không có gì đặc biệt, nhưng cũng không có gì xấu.',
+  'Sản phẩm này có mùi thơm dễ chịu, tuy nhiên không có hiệu quả đáng kể.',
+  'Tôi sử dụng sản phẩm này trong một thời gian dài và tôi cảm thấy rất hài lòng với nó.',
+  'Đây là sản phẩm mỹ phẩm tốt nhất mà tôi từng dùng.',
+  'Tôi không thấy sản phẩm này đáng giá với giá tiền của nó.',
+  'Sản phẩm này hoạt động tốt, tuy nhiên tôi thấy mùi hơi khó chịu.',
+  'Tôi thấy sản phẩm này không có hiệu quả và cũng không đáng giá với giá tiền của nó.',
+  'Đây là sản phẩm mỹ phẩm thông thường, không có gì đặc biệt nhưng cũng không có vấn đề gì.',
+  'Sản phẩm này đáp ứng nhu cầu của tôi, tuy nhiên không có gì đặc biệt để nói về nó.',
+  'Tôi thấy sản phẩm này khá đáng giá với giá tiền của nó.',
+  'Sản phẩm này không có mùi hương quá mạnh và không gây kích ứng da, tuy nhiên tôi không thấy hiệu quả rõ rệt.',
+  'Tôi không thấy sản phẩm này đáng giá với giá tiền và tôi sẽ không mua lại nó.',
+];
 
 @Injectable()
 export class OrderService {
@@ -72,6 +142,7 @@ export class OrderService {
     private readonly productService: ProductService,
     private readonly cloudinaryService: CloudinaryService,
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly userService: UserService,
   ) {}
 
   async createSignature(secretKey: string, rawSignature: string) {
@@ -755,6 +826,138 @@ export class OrderService {
         error: ERROR_REFUND_PAYMENT_WITH_MOMO_ORDER,
         statusCode: HttpStatus.BAD_REQUEST,
       });
+    }
+  }
+
+  async createOrderSample(dto: CreateOrderDTO, user: string) {
+    try {
+      const orderItems: string[] = [];
+
+      for (const item of dto.orderItems) {
+        const isEnoughQuantity = await this.productService.checkEnoughQuantity(
+          item.productItem,
+          item.quantity,
+        );
+
+        if (!isEnoughQuantity) {
+          return handleResponseFailure({
+            error: `${ERROR_NOT_ENOUGH_QUANTITY_FOR_}${item.productItem}`,
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          });
+        }
+      }
+
+      for (const item of dto.orderItems) {
+        const id = await this.createOrderItem(item);
+        if (id) {
+          orderItems.push(id);
+          await this.productService.subtractQuantity(
+            item.productItem,
+            item.quantity,
+          );
+        }
+      }
+
+      const order = await this.orderModel.create({
+        user: user,
+        address: dto.address,
+        shippingFee: dto.shippingFee,
+        paymentMethod: dto.paymentMethod,
+        orderItems: orderItems,
+        status: OrderStatus.Completed,
+        orderId: generateOrderId(),
+      });
+
+      if (order.paymentMethod === PaymentMethod.MOMO) {
+        const totalPrice =
+          dto.orderItems.reduce(
+            (total, item) => (total = total + item.price * item.quantity),
+            0,
+          ) + dto.shippingFee;
+        try {
+          const momoPayUrl = await this.paymentWithMomo(
+            order._id.toString(),
+            totalPrice.toString(),
+          );
+
+          return handleResponseSuccess({
+            data: momoPayUrl,
+            message: CREATE_ORDER_SUCCESS,
+          });
+        } catch (error) {
+          console.log('error: ', error);
+          return handleResponseFailure({
+            error: ERROR_MAKE_PAYMENT_WITH_MOMO,
+            statusCode: HttpStatus.BAD_REQUEST,
+          });
+        }
+      }
+
+      return handleResponseSuccess({
+        data: order._id,
+        message: CREATE_ORDER_SUCCESS,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_CREATE_ORDER,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async createTempOrders() {
+    const userIds = await this.userService.getUsersTemp();
+
+    for (const user of userIds) {
+      const producItems = await this.productService.ramdomProdutItem();
+      const response = await this.createOrder(
+        {
+          address: '642aee62d8434479d5e1dc0b',
+          orderItems: producItems.map((item) => ({
+            productItem: item.id,
+            quantity: 1,
+            price: item.price,
+          })),
+          paymentMethod: PaymentMethod.COD,
+          shippingFee: 25000,
+        },
+        user,
+      );
+
+      if (response) {
+        await this.commentSamples(response.data);
+      }
+    }
+
+    return 'success';
+  }
+
+  async commentSamples(id: string) {
+    const order = await this.orderModel.findById(id);
+    for (const item of order.orderItems) {
+      const orderItems = await this.orderItemModel.findById(item);
+
+      const rating = Math.round(Math.random() * 5);
+      let content = '';
+
+      if (rating < 3) {
+        content = negative[Math.floor(Math.random() * negative.length)];
+      } else if (rating > 3) {
+        content = positive[Math.floor(Math.random() * positive.length)];
+      } else {
+        content = normal[Math.floor(Math.random() * normal.length)];
+      }
+
+      await this.productService.createComment(
+        {
+          orderItemId: id,
+          productItemId: orderItems.productItem.toString(),
+          rate: rating,
+          content,
+        },
+        order.user.toString(),
+      );
     }
   }
 }
