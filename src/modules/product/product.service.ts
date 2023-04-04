@@ -1301,22 +1301,24 @@ export class ProductService {
         orderItem: dto.orderItemId,
       });
 
-      const prodItem = await this.productItemModel
-        .findByIdAndUpdate(
-          dto.productItemId,
-          {
-            $push: { comments: newComment._id },
-          },
-          { new: true },
-        )
-        .populate('comments');
-
-      const newTotalRate = (prodItem.comments as CommentDocument[]).reduce(
-        (totalRating, currComment) => totalRating + currComment.rate,
-        0,
+      const prodItem = await this.productItemModel.findByIdAndUpdate(
+        dto.productItemId,
+        {
+          $push: { comments: newComment._id },
+        },
+        { new: true },
       );
+      // .populate('comments');
 
-      prodItem.rating = newTotalRate / prodItem.comments.length;
+      // const newTotalRate = (prodItem.comments as CommentDocument[]).reduce(
+      //   (totalRating, currComment) => totalRating + currComment.rate,
+      //   0,
+      // );
+
+      // prodItem.rating = newTotalRate / prodItem.comments.length;
+      prodItem.rating =
+        (prodItem.rating * (prodItem.comments.length - 1) + dto.rate) /
+        prodItem.comments.length;
 
       await prodItem.save();
 
@@ -1484,7 +1486,7 @@ export class ProductService {
     const random = shuffle(productItems);
 
     return random
-      .slice(0, 10)
+      .slice(0, 20)
       .map((item) => ({ id: item._id, price: item.price }));
   }
 }

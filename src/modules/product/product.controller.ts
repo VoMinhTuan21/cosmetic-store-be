@@ -246,4 +246,9 @@ export class ProductController {
   ) {
     return this.productService.updateComment(body, commentId);
   }
+
+  @Get('/product-item-random')
+  getProductItemRandom() {
+    return this.productService.ramdomProdutItem();
+  }
 }

@@ -833,28 +833,28 @@ export class OrderService {
     try {
       const orderItems: string[] = [];
 
-      for (const item of dto.orderItems) {
-        const isEnoughQuantity = await this.productService.checkEnoughQuantity(
-          item.productItem,
-          item.quantity,
-        );
+      // for (const item of dto.orderItems) {
+      //   const isEnoughQuantity = await this.productService.checkEnoughQuantity(
+      //     item.productItem,
+      //     item.quantity,
+      //   );
 
-        if (!isEnoughQuantity) {
-          return handleResponseFailure({
-            error: `${ERROR_NOT_ENOUGH_QUANTITY_FOR_}${item.productItem}`,
-            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          });
-        }
-      }
+      //   if (!isEnoughQuantity) {
+      //     return handleResponseFailure({
+      //       error: `${ERROR_NOT_ENOUGH_QUANTITY_FOR_}${item.productItem}`,
+      //       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      //     });
+      //   }
+      // }
 
       for (const item of dto.orderItems) {
         const id = await this.createOrderItem(item);
         if (id) {
           orderItems.push(id);
-          await this.productService.subtractQuantity(
-            item.productItem,
-            item.quantity,
-          );
+          // await this.productService.subtractQuantity(
+          //   item.productItem,
+          //   item.quantity,
+          // );
         }
       }
 
@@ -868,30 +868,30 @@ export class OrderService {
         orderId: generateOrderId(),
       });
 
-      if (order.paymentMethod === PaymentMethod.MOMO) {
-        const totalPrice =
-          dto.orderItems.reduce(
-            (total, item) => (total = total + item.price * item.quantity),
-            0,
-          ) + dto.shippingFee;
-        try {
-          const momoPayUrl = await this.paymentWithMomo(
-            order._id.toString(),
-            totalPrice.toString(),
-          );
+      // if (order.paymentMethod === PaymentMethod.MOMO) {
+      //   const totalPrice =
+      //     dto.orderItems.reduce(
+      //       (total, item) => (total = total + item.price * item.quantity),
+      //       0,
+      //     ) + dto.shippingFee;
+      //   try {
+      //     const momoPayUrl = await this.paymentWithMomo(
+      //       order._id.toString(),
+      //       totalPrice.toString(),
+      //     );
 
-          return handleResponseSuccess({
-            data: momoPayUrl,
-            message: CREATE_ORDER_SUCCESS,
-          });
-        } catch (error) {
-          console.log('error: ', error);
-          return handleResponseFailure({
-            error: ERROR_MAKE_PAYMENT_WITH_MOMO,
-            statusCode: HttpStatus.BAD_REQUEST,
-          });
-        }
-      }
+      //     return handleResponseSuccess({
+      //       data: momoPayUrl,
+      //       message: CREATE_ORDER_SUCCESS,
+      //     });
+      //   } catch (error) {
+      //     console.log('error: ', error);
+      //     return handleResponseFailure({
+      //       error: ERROR_MAKE_PAYMENT_WITH_MOMO,
+      //       statusCode: HttpStatus.BAD_REQUEST,
+      //     });
+      //   }
+      // }
 
       return handleResponseSuccess({
         data: order._id,
@@ -911,7 +911,7 @@ export class OrderService {
 
     for (const user of userIds) {
       const producItems = await this.productService.ramdomProdutItem();
-      const response = await this.createOrder(
+      const response = await this.createOrderSample(
         {
           address: '642aee62d8434479d5e1dc0b',
           orderItems: producItems.map((item) => ({
@@ -936,9 +936,9 @@ export class OrderService {
   async commentSamples(id: string) {
     const order = await this.orderModel.findById(id);
     for (const item of order.orderItems) {
-      const orderItems = await this.orderItemModel.findById(item);
+      const orderItem = await this.orderItemModel.findById(item);
 
-      const rating = Math.round(Math.random() * 5);
+      const rating = Math.floor(Math.random() * 4 + 2);
       let content = '';
 
       if (rating < 3) {
@@ -951,8 +951,8 @@ export class OrderService {
 
       await this.productService.createComment(
         {
-          orderItemId: id,
-          productItemId: orderItems.productItem.toString(),
+          orderItemId: orderItem._id,
+          productItemId: orderItem.productItem.toString(),
           rate: rating,
           content,
         },
