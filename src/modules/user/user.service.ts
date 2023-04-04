@@ -405,4 +405,12 @@ export class UserService {
       });
     }
   }
+
+  async getUsersTemp() {
+    const users = await this.userModel.find({
+      email: { $regex: 'hygge', $options: 'i' },
+    });
+
+    return users.map((user) => user._id.toString());
+  }
 }
