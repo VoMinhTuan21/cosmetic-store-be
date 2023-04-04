@@ -32,7 +32,7 @@ import {
   GET_ADDRESSES_SUCCESS,
   UPDATE_ADDRESS_SUCCESS,
 } from '../../constances';
-import { Role } from '../../constances/enum';
+import { Gender, Role } from '../../constances/enum';
 
 import {
   DefaultUser,
@@ -41,6 +41,7 @@ import {
   UpdateUserDTO,
   ChangePassDTO,
   AddressDTO,
+  SignUpTempUserWithPassword,
 } from '../../dto/request';
 import { AddressResDTO, UserBasicInfoDto } from '../../dto/response';
 import { Address, AddressDocument, User, UserDocument } from '../../schemas';
@@ -401,6 +402,37 @@ export class UserService {
     } catch (error) {
       return handleResponseFailure({
         error: error.response?.error || ERROR_GET_ADDRESSES,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async createTempUser(name: string, email: string) {
+    try {
+      const userEmail = await this.userModel.findOne({ email: email });
+      if (userEmail) {
+        handleResponseFailure({
+          error: ERROR_EMAIL_HAS_BEEN_USED,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
+      const hasPass = hashPasswords('@Voxuantu8121');
+
+      const newUser = await this.userModel.create({
+        birthday: '2001-01-01',
+        email: email,
+        password: hasPass,
+        name: name,
+        gender: Gender.Female,
+        addresses: ['642aee62d8434479d5e1dc0b'],
+      });
+
+      return newUser;
+    } catch (error) {
+      console.log('error: ', error);
+      handleResponseFailure({
+        error: error.response?.error || ERROR_SIGN_UP,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
