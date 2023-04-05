@@ -1,3 +1,5 @@
+import { OmitType } from '@nestjs/swagger';
+
 export class ProductDashboardTableDTO {
   _id: string;
   name: string;
@@ -37,3 +39,7 @@ export class ProductCardDTO {
   brand: string;
   price: number;
 }
+
+export class ProductBrandCartDTO extends OmitType(ProductCardDTO, [
+  'categories',
+] as const) {}

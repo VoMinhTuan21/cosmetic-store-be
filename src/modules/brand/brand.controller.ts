@@ -19,6 +19,7 @@ import {
 } from '../../dto/request';
 import { imageFileFilter } from '../../utils/image-file-filter';
 import { BrandService } from './brand.service';
+import { ValidateMongoId } from '../../utils/validate-pipe';
 
 @ApiTags('Brand')
 @Controller('brand')
@@ -79,5 +80,10 @@ export class BrandController {
   @Get('/ranking-sell')
   getBrandRankingSell() {
     return this.brandService.getBrandRankingSell();
+  }
+
+  @Get('/:id')
+  getBrandNameById(@Param('id', ValidateMongoId) id: string) {
+    return this.brandService.getBrandNameById(id);
   }
 }

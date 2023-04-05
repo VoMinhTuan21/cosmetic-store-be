@@ -21,6 +21,8 @@ import {
   ERROR_GET_BRANDS_BY_CATEGORY,
   ERROR_GET_BRANDS_RANKING_SELL,
   GET_BRANDS_RANKING_SELL_SUCCESS,
+  ERROR_GET_BRAND_NAME_BY_ID,
+  GET_BRAND_NAME_BY_ID_SUCCESS,
 } from '../../constances';
 import { BrandNameDTO, BrandResDTO } from '../../dto/response';
 import { Brand, BrandDocument } from '../../schemas';
@@ -259,6 +261,29 @@ export class BrandService {
       console.log('error: ', error);
       return handleResponseFailure({
         error: ERROR_GET_BRANDS_RANKING_SELL,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getBrandNameById(brandId: string) {
+    try {
+      const brand = await this.brandModel.findById(brandId, 'name');
+      if (!brand) {
+        return handleResponseFailure({
+          error: ERROR_BRAND_NOT_EXIST,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      return handleResponseSuccess({
+        message: GET_BRAND_NAME_BY_ID_SUCCESS,
+        data: brand.name,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_GET_BRAND_NAME_BY_ID,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

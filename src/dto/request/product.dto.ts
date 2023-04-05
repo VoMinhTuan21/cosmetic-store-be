@@ -349,3 +349,29 @@ export class FilterProductAdminDTO extends PagePagination {
   @IsOptional()
   category: string[];
 }
+
+export class ProductItemsByBrandAndOptionsDTO {
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  from: number;
+
+  @ApiPropertyOptional({
+    type: String,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  to: number;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['asc', 'desc', 'def'],
+  })
+  @IsOptional()
+  @IsString()
+  order: 'asc' | 'desc' | 'def';
+}

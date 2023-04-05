@@ -62,12 +62,17 @@ import {
   FilterProductAdminDTO,
   LoadMorePagination,
   PagePagination,
+  ProductItemsByBrandAndOptionsDTO,
   ProductItemsByCategoryAndOptionsDTO,
   UpdateCommentDTO,
   UpdateProductDTO,
   UpdateProductItemDTO,
 } from '../../dto/request';
-import { ProductCardDTO, ProductSimPleDTO } from '../../dto/response';
+import {
+  ProductBrandCartDTO,
+  ProductCardDTO,
+  ProductSimPleDTO,
+} from '../../dto/response';
 import {
   BrandDocument,
   CommentDocument,
@@ -1474,5 +1479,123 @@ export class ProductService {
     );
 
     return product.brand;
+  }
+
+  async getProductByBrandAndOptions(
+    brandId: string,
+    { limit, after }: LoadMorePagination,
+    { from, to, order }: ProductItemsByBrandAndOptionsDTO,
+  ) {
+    try {
+      if (after === 'end') {
+        return handleResponseSuccess({
+          data: {
+            productItems: [],
+            after: 'end',
+          },
+          message: GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
+        });
+      }
+
+      let products = await this.productModel
+        .find({
+          brand: new mongoose.Types.ObjectId(brandId),
+        })
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value',
+          },
+          select: '_id price thumbnail productConfigurations',
+        })
+        .populate('brand', '_id name')
+        .select('_id name brand productItems');
+
+      let productItems = await this.convertProductBrandToProductCard(products);
+
+      if (from >= 0 && to >= 0) {
+        productItems = productItems.filter(
+          (item) => item.price >= from && item.price <= to,
+        );
+      }
+
+      if (order === 'desc') {
+        productItems = productItems.sort((a, b) => b.price - a.price);
+      } else if (order === 'asc') {
+        productItems = productItems.sort((a, b) => a.price - b.price);
+      }
+
+      let index = productItems.findIndex(
+        (item) => item.itemId.toString() === after,
+      );
+      if (index === -1) {
+        index = 0;
+      }
+      const data = productItems.slice(index, limit + index);
+
+      return handleResponseSuccess({
+        data: {
+          data: data,
+          after:
+            index + limit >= productItems.length
+              ? 'end'
+              : productItems[index + limit].itemId,
+        },
+        message: GET_PRODUCT_BY_CATEGORY_AND_OPTIONS_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_PRODUCT_BY_CATEGORY_AND_OPTIONS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async convertProductBrandToProductCard(products: ProductDocument[]) {
+    const productItems: ProductBrandCartDTO[] = [];
+    for (const prod of products) {
+      for (const productItem of prod.productItems) {
+        const prodItem = productItem as ProductItemDocument;
+        // get thumbnail url
+        prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
+          prodItem.thumbnail,
+        );
+
+        // concat name of product with variation name
+        let nameVi = '';
+        let nameEn = '';
+        prod.name.forEach((item) => {
+          if (item.language === 'en') {
+            nameEn = item.value;
+          } else {
+            nameVi = item.value;
+          }
+        });
+        for (const config of prodItem.productConfigurations) {
+          const configItem = config as VariationOptionDocument;
+          configItem.value.forEach((val) => {
+            if (val.language === 'en') {
+              nameEn += ' ' + val.value;
+            } else {
+              nameVi += ' ' + val.value;
+            }
+          });
+        }
+        productItems.push({
+          itemId: prodItem._id,
+          productId: prod._id,
+          price: prodItem.price,
+          thumbnail: prodItem.thumbnail,
+          name: [
+            { language: 'vi', value: nameVi },
+            { language: 'en', value: nameEn },
+          ],
+          brand: (prod.brand as BrandDocument).name,
+        });
+      }
+    }
+
+    return productItems;
   }
 }

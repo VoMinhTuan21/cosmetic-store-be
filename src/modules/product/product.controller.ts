@@ -28,6 +28,7 @@ import {
   PagePagination,
   CommentPagination,
   FilterProductAdminDTO,
+  ProductItemsByBrandAndOptionsDTO,
 } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { ValidateMongoId } from '../../utils/validate-pipe';
@@ -245,5 +246,14 @@ export class ProductController {
     @Param('commentId', ValidateMongoId) commentId: string,
   ) {
     return this.productService.updateComment(body, commentId);
+  }
+
+  @Post('/product-items/brand/:id/options?')
+  getProductItemsByBrandWithOtherOptions(
+    @Param('id') id: string,
+    @Query() query: ProductItemsByBrandAndOptionsDTO,
+    @Body() body: LoadMorePagination,
+  ) {
+    return this.productService.getProductByBrandAndOptions(id, body, query);
   }
 }
