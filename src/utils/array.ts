@@ -17,3 +17,13 @@ export function shuffle<T>(array: T[]) {
 
   return array;
 }
+
+export function compareBrandCount(brandA: IBrandCount, brandB: IBrandCount) {
+  if (brandA.count > brandB.count) {
+    return -1;
+  }
+  if (brandA.count < brandB.count) {
+    return 1;
+  }
+  return 0;
+}

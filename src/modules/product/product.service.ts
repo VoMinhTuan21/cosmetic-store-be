@@ -1466,4 +1466,13 @@ export class ProductService {
       });
     }
   }
+
+  async getProdBrandByProdItemId(id: string) {
+    const product = await this.productModel.findOne(
+      { productItems: id },
+      'brand',
+    );
+
+    return product.brand;
+  }
 }

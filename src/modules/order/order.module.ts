@@ -20,5 +20,6 @@ import { OrderProfile } from './order.profile';
   ],
   providers: [OrderService, OrderProfile],
   controllers: [OrderController],
+  exports: [OrderService],
 })
 export class OrderModule {}

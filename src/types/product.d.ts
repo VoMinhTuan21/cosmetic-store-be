@@ -51,3 +51,13 @@ declare interface IRateCount {
   rate: number;
   count: number;
 }
+
+declare interface IBrandCount {
+  brandId: string;
+  count: number;
+}
+
+declare interface IProductSellCount {
+  _id: string;
+  count: number;
+}

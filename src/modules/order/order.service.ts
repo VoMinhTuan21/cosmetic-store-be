@@ -58,7 +58,8 @@ import {
 } from '../../utils/handle-response';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { ProductService } from '../product/product.service';
-import { generateOrderId, generateString } from '../../utils/random-string';
+import { generateOrderId } from '../../utils/random-string';
+import { compareBrandCount } from '../../utils/array';
 
 @Injectable()
 export class OrderService {
@@ -756,5 +757,44 @@ export class OrderService {
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
+  }
+
+  async getNumberItemSellInBrands() {
+    const orderItems = (await this.orderItemModel.aggregate([
+      {
+        $group: {
+          _id: '$productItem',
+          count: { $count: {} },
+        },
+      },
+    ])) as IProductSellCount[];
+
+    const brandCount: IBrandCount[] = [];
+
+    for (let i = 0; i < orderItems.length; i++) {
+      const prodSellItem = orderItems[i];
+
+      const brandProd = await this.productService.getProdBrandByProdItemId(
+        prodSellItem._id as string,
+      );
+
+      const existBrand = brandCount.find(
+        (brand) => brand.brandId === brandProd.toString(),
+      );
+
+      if (existBrand) {
+        existBrand.count += prodSellItem.count;
+      } else {
+        brandCount.push({
+          brandId: brandProd.toString(),
+          count: prodSellItem.count,
+        });
+      }
+    }
+
+    return brandCount
+      .sort(compareBrandCount)
+      .slice(0, 15)
+      .map((brand) => brand.brandId);
   }
 }

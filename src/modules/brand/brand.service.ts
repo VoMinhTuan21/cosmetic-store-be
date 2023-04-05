@@ -19,6 +19,8 @@ import {
   ERROR_GET_BRANDS,
   GET_BRANDS_BY_CATEGORY_SUCCESS,
   ERROR_GET_BRANDS_BY_CATEGORY,
+  ERROR_GET_BRANDS_RANKING_SELL,
+  GET_BRANDS_RANKING_SELL_SUCCESS,
 } from '../../constances';
 import { BrandNameDTO, BrandResDTO } from '../../dto/response';
 import { Brand, BrandDocument } from '../../schemas';
@@ -28,6 +30,8 @@ import {
 } from '../../utils/handle-response';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { ProductService } from '../product/product.service';
+import { OrderService } from '../order/order.service';
+import { shuffle } from '../../utils/array';
 
 @Injectable()
 export class BrandService {
@@ -36,6 +40,7 @@ export class BrandService {
     private readonly cloudinaryService: CloudinaryService,
     @InjectMapper() private readonly mapper: Mapper,
     private readonly productService: ProductService,
+    private readonly orderService: OrderService,
   ) {}
 
   async create(name: string, logo: Express.Multer.File) {
@@ -93,7 +98,7 @@ export class BrandService {
       if (name) {
         const regex = new RegExp(['^', name, '$'].join(''), 'i');
         const brandNameFound = await this.brandModel.findOne({ name: regex });
-        if (brandNameFound) {
+        if (brandNameFound._id.toString() !== brandFound._id.toString()) {
           return handleResponseFailure({
             error: ERROR_BRAND_NAME_EXISTED,
             statusCode: HttpStatus.BAD_REQUEST,
@@ -228,6 +233,32 @@ export class BrandService {
     } catch (error) {
       return handleResponseFailure({
         error: ERROR_GET_BRANDS_BY_CATEGORY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getBrandRankingSell() {
+    try {
+      const brandIds = await this.orderService.getNumberItemSellInBrands();
+
+      const popularBrands = await this.brandModel.find({
+        _id: { $in: brandIds },
+      });
+
+      for (let i = 0; i < popularBrands.length; i++) {
+        const brand = popularBrands[i];
+        brand.logo = await this.cloudinaryService.getImageUrl(brand.logo);
+      }
+
+      return handleResponseSuccess({
+        message: GET_BRANDS_RANKING_SELL_SUCCESS,
+        data: shuffle(this.mapper.mapArray(popularBrands, Brand, BrandResDTO)),
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_GET_BRANDS_RANKING_SELL,
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }

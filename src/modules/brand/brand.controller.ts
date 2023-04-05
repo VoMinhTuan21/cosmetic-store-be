@@ -75,4 +75,9 @@ export class BrandController {
     }
     return this.brandService.getBrands();
   }
+
+  @Get('/ranking-sell')
+  getBrandRankingSell() {
+    return this.brandService.getBrandRankingSell();
+  }
 }
