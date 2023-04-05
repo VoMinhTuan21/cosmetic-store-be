@@ -19,6 +19,7 @@ import {
   ChangePassDTO,
   AddressDTO,
   CreatePassDTO,
+  SignUpTempUserWithPassword,
 } from '../../dto/request';
 
 @ApiTags('User')
@@ -26,16 +27,16 @@ import {
 @ApiBearerAuth('access_token')
 @UseGuards(JwtGuard)
 export class UserController {
-  constructor(private readonly useService: UserService) {}
+  constructor(private readonly userService: UserService) {}
 
   @Get('/check-pass')
   checkPass(@Req() req: Request) {
-    return this.useService.checkUserHasPass((req.user as IJWTInfo)._id);
+    return this.userService.checkUserHasPass((req.user as IJWTInfo)._id);
   }
 
   @Post('/address')
   createAddress(@Body() dto: AddressDTO, @Req() req: Request) {
-    return this.useService.createAddress((req.user as IJWTInfo)._id, dto);
+    return this.userService.createAddress((req.user as IJWTInfo)._id, dto);
   }
 
   @Put('/address/:addressId')
@@ -43,7 +44,7 @@ export class UserController {
     @Body() dto: AddressDTO,
     @Param('addressId', ValidateMongoId) addressId: string,
   ) {
-    return this.useService.updateAddress(addressId, dto);
+    return this.userService.updateAddress(addressId, dto);
   }
 
   @Put('/address/default/:addressId')
@@ -51,7 +52,7 @@ export class UserController {
     @Param('addressId', ValidateMongoId) addressId: string,
     @Req() req: Request,
   ) {
-    return this.useService.changeDefaultAddress(
+    return this.userService.changeDefaultAddress(
       (req.user as IJWTInfo)._id,
       addressId,
     );
@@ -62,31 +63,37 @@ export class UserController {
     @Param('addressId', ValidateMongoId) addressId: string,
     @Req() req: Request,
   ) {
-    return this.useService.deleteAdderss((req.user as IJWTInfo)._id, addressId);
+    return this.userService.deleteAdderss(
+      (req.user as IJWTInfo)._id,
+      addressId,
+    );
   }
 
   @Get('/address')
   getAddresses(@Req() req: Request) {
-    return this.useService.getAddresses((req.user as IJWTInfo)._id);
+    return this.userService.getAddresses((req.user as IJWTInfo)._id);
   }
 
   @Get('/:email')
   getUserByEmail(@Param('email') email: string) {
-    return this.useService.getUserByEmail(email);
+    return this.userService.getUserByEmail(email);
   }
 
   @Put()
   updateUser(@Body() dto: UpdateUserDTO, @Req() req: Request) {
-    return this.useService.update(dto, (req.user as IJWTInfo)._id);
+    return this.userService.update(dto, (req.user as IJWTInfo)._id);
   }
 
   @Put('/change-pass')
   changePass(@Body() dto: ChangePassDTO, @Req() req: Request) {
-    return this.useService.changePass(dto, (req.user as IJWTInfo)._id);
+    return this.userService.changePass(dto, (req.user as IJWTInfo)._id);
   }
 
   @Post('/create-pass')
   createPass(@Body() dto: CreatePassDTO, @Req() req: Request) {
-    return this.useService.createPass((req.user as IJWTInfo)._id, dto.password);
+    return this.userService.createPass(
+      (req.user as IJWTInfo)._id,
+      dto.password,
+    );
   }
 }

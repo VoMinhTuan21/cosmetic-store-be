@@ -2,19 +2,25 @@ import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import {
+  CreateTemUsers,
   SignInDTO,
   SignInWithSocialMediaDTO,
+  SignUpTempUserWithPassword,
   SignUpWithPassword,
   sendMailOTP,
 } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { handleResponseSuccess } from '../../utils/handle-response';
 import { AuthService } from './auth.service';
+import { UserService } from '../user/user.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
 
   @Post('/sign-in')
   signIn(@Body() data: SignInDTO) {
@@ -61,5 +67,14 @@ export class AuthController {
       (req.user as IJWTInfo).email,
       data,
     );
+  }
+
+  @Post('/create-temp-user')
+  async createTempUser(@Body() dto: CreateTemUsers) {
+    for (const name of dto.name) {
+      const email = `hygge${Math.round(Math.random() * 1000000)}@gmail.com`;
+      await this.userService.createTempUser(name, email);
+    }
+    return 'success';
   }
 }

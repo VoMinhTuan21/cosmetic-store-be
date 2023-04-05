@@ -248,6 +248,11 @@ export class ProductController {
     return this.productService.updateComment(body, commentId);
   }
 
+  @Get('/product-item-random')
+  getProductItemRandom() {
+    return this.productService.ramdomProdutItem();
+  }
+
   @Post('/product-items/brand/:id/options?')
   getProductItemsByBrandWithOtherOptions(
     @Param('id') id: string,

@@ -11,6 +11,7 @@ import {
   Length,
   Matches,
   IsBooleanString,
+  IsArray,
 } from 'class-validator';
 import { Gender } from '../../constances/enum';
 
@@ -155,4 +156,42 @@ export class sendMailOTP {
   @IsNotEmpty()
   @IsEmail()
   email: string;
+}
+
+export class SignUpTempUserWithPassword {
+  @ApiProperty({ type: String, default: 'voxuantucntt@gmail.com' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({ type: String, default: '123456789' })
+  @IsString()
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/, {
+    message:
+      'Password must contain at least 1 letter, 1 number, 1 special character, and be at least 8 characters long',
+  })
+  @IsNotEmpty()
+  password: string;
+
+  @ApiProperty({ type: String, default: 'Vo Xuan Tu' })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({ type: String, default: '2001-01-01' })
+  @IsDateString()
+  @IsNotEmpty()
+  birthday: string;
+
+  @ApiProperty({ enum: Gender, default: Gender.Male })
+  @IsEnum(Gender)
+  @IsNotEmpty()
+  gender: Gender;
+}
+
+export class CreateTemUsers {
+  @ApiProperty({ type: String, isArray: true })
+  @IsArray()
+  @IsNotEmpty()
+  name: string[];
 }

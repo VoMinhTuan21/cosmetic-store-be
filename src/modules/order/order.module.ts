@@ -7,6 +7,7 @@ import { ProductModule } from '../product/product.module';
 import { HttpModule } from '@nestjs/axios';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { OrderProfile } from './order.profile';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OrderProfile } from './order.profile';
     ProductModule,
     HttpModule,
     CloudinaryModule,
+    UserModule,
   ],
   providers: [OrderService, OrderProfile],
   controllers: [OrderController],

@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaTimestampsConfig } from 'mongoose';
+import mongoose, { SchemaTimestampsConfig } from 'mongoose';
+import { TagGroupDocument } from './tagGroup.schema';
 
 export type TagDocument = Tag & Document & SchemaTimestampsConfig;
 
@@ -13,6 +14,12 @@ export class Tag {
     type: String,
   })
   name: string;
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TagGroup',
+  })
+  parent: TagGroupDocument | string;
 
   @Prop({
     type: Number,
