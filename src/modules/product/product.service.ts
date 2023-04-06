@@ -52,6 +52,8 @@ import {
   ERROR_GET_COMMENT_PAGINATION,
   GET_COMMENT_PAGINATION_SUCCESS,
   alphabet,
+  GET_RECOMMEND_ITEM_BASED_SUCCESS,
+  ERROR_GET_RECOMMEND_ITEM_BASED,
 } from '../../constances';
 import { Search } from '../../constances/enum';
 import {
@@ -1493,6 +1495,65 @@ export class ProductService {
     return random
       .slice(0, 20)
       .map((item) => ({ id: item._id, price: item.price }));
+  }
+
+  async recommendItemBased(user: string) {
+    try {
+      const { data } = await this.httpService.axiosRef.get<string[]>(
+        `${this.config.get(
+          'RECOMMEND_URL',
+        )}/product-item/recommend-item-based/${user}`,
+      );
+
+      const products = await this.productModel
+        .find({
+          productItems: {
+            $elemMatch: {
+              $in: data.map((item) => new mongoose.Types.ObjectId(item)),
+            },
+          },
+        })
+        .populate({
+          path: 'productItems',
+          populate: {
+            path: 'productConfigurations',
+            select: '_id value',
+          },
+          match: {
+            _id: {
+              $in: data.map((item) => new mongoose.Types.ObjectId(item)),
+            },
+          },
+          select: '_id price thumbnail productConfigurations',
+        })
+        .populate('brand', '_id name')
+        .select('_id name categories brand');
+
+      const productItems = await this.convertProductDocumentToProductCard(
+        products,
+      );
+
+      const recommdedProdItems: ProductCardDTO[] = [];
+      for (let i = 0; i < data.length; i++) {
+        const prodItemId = data[i];
+        const item = productItems.find(
+          (prod) => prod.itemId.toString() === prodItemId,
+        );
+        if (item) {
+          recommdedProdItems.push(item);
+        }
+      }
+
+      return handleResponseSuccess({
+        data: recommdedProdItems,
+        message: GET_RECOMMEND_ITEM_BASED_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_GET_RECOMMEND_ITEM_BASED,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 
   async getProdBrandByProdItemId(id: string) {

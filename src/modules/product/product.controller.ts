@@ -233,6 +233,13 @@ export class ProductController {
 
   @ApiBearerAuth('access_token')
   @UseGuards(JwtGuard)
+  @Get('/recommend/item-based')
+  getRecommendItemBased(@Req() req: Request) {
+    return this.productService.recommendItemBased((req.user as IJWTInfo)._id);
+  }
+
+  @ApiBearerAuth('access_token')
+  @UseGuards(JwtGuard)
   @Post('/comment')
   createComment(@Body() body: CreateCommentDTO, @Req() req: Request) {
     return this.productService.createComment(body, (req.user as IJWTInfo)._id);
