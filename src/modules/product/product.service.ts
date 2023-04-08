@@ -54,6 +54,8 @@ import {
   alphabet,
   GET_RECOMMEND_ITEM_BASED_SUCCESS,
   ERROR_GET_RECOMMEND_ITEM_BASED,
+  GET_CATEGORY_ID_OF_PRODUCT_SUCCESS,
+  ERROR_GET_CATEGORY_ID_OF_PRODUCT,
 } from '../../constances';
 import { Search } from '../../constances/enum';
 import {
@@ -1681,5 +1683,20 @@ export class ProductService {
     }
 
     return productItems;
+  }
+
+  async getCategoryIdByProductId(productId: string) {
+    try {
+      const product = await this.productModel.findById(productId);
+      return handleResponseSuccess({
+        data: product.categories[0],
+        message: GET_CATEGORY_ID_OF_PRODUCT_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_CATEGORY_ID_OF_PRODUCT,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 }

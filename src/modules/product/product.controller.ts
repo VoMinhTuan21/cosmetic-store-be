@@ -268,4 +268,9 @@ export class ProductController {
   ) {
     return this.productService.getProductByBrandAndOptions(id, body, query);
   }
+
+  @Get('/category-id/:id')
+  getCategoryIdOfProduct(@Param('id') id: string) {
+    return this.productService.getCategoryIdByProductId(id);
+  }
 }
