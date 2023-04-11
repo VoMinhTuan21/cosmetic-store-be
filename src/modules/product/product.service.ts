@@ -95,6 +95,7 @@ import {
 } from '../../utils/handle-response';
 import { CategoryService } from '../category/category.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { SalesQuantityService } from '../sales-quantity/sales-quantity.service';
 
 @Injectable()
 export class ProductService {
@@ -110,6 +111,7 @@ export class ProductService {
     private readonly categoryService: CategoryService,
     private readonly httpService: HttpService,
     private readonly config: ConfigService,
+    private readonly salesQuanitytService: SalesQuantityService,
   ) {}
 
   async createProductItem(dto: CreateProductItemDTO) {

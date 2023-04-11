@@ -61,6 +61,7 @@ import { ProductService } from '../product/product.service';
 import { generateOrderId } from '../../utils/random-string';
 import { compareBrandCount } from '../../utils/array';
 import { UserService } from '../user/user.service';
+import { SalesQuantityService } from '../sales-quantity/sales-quantity.service';
 
 const positive = [
   'Sản phẩm đến nhanh chóng và chất lượng tuyệt vời.',
@@ -144,6 +145,7 @@ export class OrderService {
     private readonly cloudinaryService: CloudinaryService,
     @InjectMapper() private readonly mapper: Mapper,
     private readonly userService: UserService,
+    private readonly salesQuantityService: SalesQuantityService,
   ) {}
 
   async createSignature(secretKey: string, rawSignature: string) {
@@ -999,5 +1001,26 @@ export class OrderService {
       .sort(compareBrandCount)
       .slice(0, 15)
       .map((brand) => brand.brandId);
+  }
+
+  async createDataSalesQuantity() {
+    const orderItems = (await this.orderItemModel.aggregate([
+      {
+        $group: {
+          _id: '$productItem',
+          sum: {
+            $sum: '$quantity',
+          },
+        },
+      },
+    ])) as { _id: string; sum: number }[];
+    for (const item of orderItems) {
+      await this.salesQuantityService.create({
+        productItem: item._id.toString(),
+        sold: item.sum,
+      });
+    }
+
+    return 'success';
   }
 }

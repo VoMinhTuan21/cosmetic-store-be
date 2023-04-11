@@ -87,4 +87,9 @@ export class OrderController {
   createSampleOrder() {
     return this.orderService.createTempOrders();
   }
+
+  @Post('/create-data-sales-quantity')
+  createDataSalesQuantity() {
+    return this.orderService.createDataSalesQuantity();
+  }
 }
