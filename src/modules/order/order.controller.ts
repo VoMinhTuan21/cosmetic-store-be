@@ -83,13 +83,13 @@ export class OrderController {
     return this.orderService.refundPaymentWithMomo(orderId);
   }
 
-  @Post('/create-sample-orders')
-  createSampleOrder() {
-    return this.orderService.createTempOrders();
-  }
+  // @Post('/create-sample-orders')
+  // createSampleOrder() {
+  //   return this.orderService.createTempOrders();
+  // }
 
-  @Post('/create-data-sales-quantity')
-  createDataSalesQuantity() {
-    return this.orderService.createDataSalesQuantity();
-  }
+  // @Post('/create-data-sales-quantity')
+  // createDataSalesQuantity() {
+  //   return this.orderService.createDataSalesQuantity();
+  // }
 }

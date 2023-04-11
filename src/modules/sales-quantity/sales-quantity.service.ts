@@ -18,21 +18,11 @@ export class SalesQuantityService {
 
   async create(dto: CreateSalesQuantityDTO) {
     try {
-      const salesQuantity = await this.salesQuantityModel.findOne({
-        productItem: new mongoose.Types.ObjectId(dto.productItem),
+      const newSalesQuantity = await this.salesQuantityModel.create({
+        sold: dto.sold,
       });
 
-      if (salesQuantity) {
-        salesQuantity.sold += dto.sold;
-        await salesQuantity.save();
-      } else {
-        await this.salesQuantityModel.create({
-          productItem: dto.productItem,
-          sold: dto.sold,
-        });
-      }
-
-      return 'success';
+      return newSalesQuantity._id;
     } catch (error) {
       handleResponseFailure({
         error: ERROR_CREATE_SALES_QUANTITY,
@@ -41,15 +31,10 @@ export class SalesQuantityService {
     }
   }
 
-  async getSalesQuantities(limit: number, after?: string) {
-    const salesQuantities = await this.salesQuantityModel
-      .find()
-      .sort({ sold: -1 });
+  async update(id: string, sold: number) {
+    const salesQuantity = await this.salesQuantityModel.findById(id);
+    salesQuantity.sold += sold;
 
-    if (after) {
-      const index = salesQuantities.findIndex(
-        (item) => item.productItem.toString() === after,
-      );
-    }
+    await salesQuantity.save();
   }
 }

@@ -345,6 +345,13 @@ export class OrderService {
         quantity: dto.quantity,
       });
 
+      const salesQuantityId =
+        await this.productService.getSalesQuantityByProductId(dto.productItem);
+      await this.salesQuantityService.update(
+        salesQuantityId.toString(),
+        dto.quantity,
+      );
+
       return item._id;
     } catch (error) {
       return handleResponseFailure({
@@ -832,195 +839,160 @@ export class OrderService {
     }
   }
 
-  async createOrderSample(dto: CreateOrderDTO, user: string) {
-    try {
-      const orderItems: string[] = [];
+  // async createOrderSample(dto: CreateOrderDTO, user: string) {
+  //   try {
+  //     const orderItems: string[] = [];
 
-      // for (const item of dto.orderItems) {
-      //   const isEnoughQuantity = await this.productService.checkEnoughQuantity(
-      //     item.productItem,
-      //     item.quantity,
-      //   );
+  //     // for (const item of dto.orderItems) {
+  //     //   const isEnoughQuantity = await this.productService.checkEnoughQuantity(
+  //     //     item.productItem,
+  //     //     item.quantity,
+  //     //   );
 
-      //   if (!isEnoughQuantity) {
-      //     return handleResponseFailure({
-      //       error: `${ERROR_NOT_ENOUGH_QUANTITY_FOR_}${item.productItem}`,
-      //       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      //     });
-      //   }
-      // }
+  //     //   if (!isEnoughQuantity) {
+  //     //     return handleResponseFailure({
+  //     //       error: `${ERROR_NOT_ENOUGH_QUANTITY_FOR_}${item.productItem}`,
+  //     //       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+  //     //     });
+  //     //   }
+  //     // }
 
-      for (const item of dto.orderItems) {
-        const id = await this.createOrderItem(item);
-        if (id) {
-          orderItems.push(id);
-          // await this.productService.subtractQuantity(
-          //   item.productItem,
-          //   item.quantity,
-          // );
-        }
-      }
+  //     for (const item of dto.orderItems) {
+  //       const id = await this.createOrderItem(item);
+  //       if (id) {
+  //         orderItems.push(id);
+  //         // await this.productService.subtractQuantity(
+  //         //   item.productItem,
+  //         //   item.quantity,
+  //         // );
+  //       }
+  //     }
 
-      const order = await this.orderModel.create({
-        user: user,
-        address: dto.address,
-        shippingFee: dto.shippingFee,
-        paymentMethod: dto.paymentMethod,
-        orderItems: orderItems,
-        status: OrderStatus.Completed,
-        orderId: generateOrderId(),
-      });
+  //     const order = await this.orderModel.create({
+  //       user: user,
+  //       address: dto.address,
+  //       shippingFee: dto.shippingFee,
+  //       paymentMethod: dto.paymentMethod,
+  //       orderItems: orderItems,
+  //       status: OrderStatus.Completed,
+  //       orderId: generateOrderId(),
+  //     });
 
-      // if (order.paymentMethod === PaymentMethod.MOMO) {
-      //   const totalPrice =
-      //     dto.orderItems.reduce(
-      //       (total, item) => (total = total + item.price * item.quantity),
-      //       0,
-      //     ) + dto.shippingFee;
-      //   try {
-      //     const momoPayUrl = await this.paymentWithMomo(
-      //       order._id.toString(),
-      //       totalPrice.toString(),
-      //     );
+  //     // if (order.paymentMethod === PaymentMethod.MOMO) {
+  //     //   const totalPrice =
+  //     //     dto.orderItems.reduce(
+  //     //       (total, item) => (total = total + item.price * item.quantity),
+  //     //       0,
+  //     //     ) + dto.shippingFee;
+  //     //   try {
+  //     //     const momoPayUrl = await this.paymentWithMomo(
+  //     //       order._id.toString(),
+  //     //       totalPrice.toString(),
+  //     //     );
 
-      //     return handleResponseSuccess({
-      //       data: momoPayUrl,
-      //       message: CREATE_ORDER_SUCCESS,
-      //     });
-      //   } catch (error) {
-      //     console.log('error: ', error);
-      //     return handleResponseFailure({
-      //       error: ERROR_MAKE_PAYMENT_WITH_MOMO,
-      //       statusCode: HttpStatus.BAD_REQUEST,
-      //     });
-      //   }
-      // }
+  //     //     return handleResponseSuccess({
+  //     //       data: momoPayUrl,
+  //     //       message: CREATE_ORDER_SUCCESS,
+  //     //     });
+  //     //   } catch (error) {
+  //     //     console.log('error: ', error);
+  //     //     return handleResponseFailure({
+  //     //       error: ERROR_MAKE_PAYMENT_WITH_MOMO,
+  //     //       statusCode: HttpStatus.BAD_REQUEST,
+  //     //     });
+  //     //   }
+  //     // }
 
-      return handleResponseSuccess({
-        data: order._id,
-        message: CREATE_ORDER_SUCCESS,
-      });
-    } catch (error) {
-      console.log('error: ', error);
-      return handleResponseFailure({
-        error: error.response?.error || ERROR_CREATE_ORDER,
-        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
-      });
-    }
-  }
+  //     return handleResponseSuccess({
+  //       data: order._id,
+  //       message: CREATE_ORDER_SUCCESS,
+  //     });
+  //   } catch (error) {
+  //     console.log('error: ', error);
+  //     return handleResponseFailure({
+  //       error: error.response?.error || ERROR_CREATE_ORDER,
+  //       statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+  //     });
+  //   }
+  // }
 
-  async createTempOrders() {
-    const userIds = await this.userService.getUsersTemp();
+  // async createTempOrders() {
+  //   const userIds = await this.userService.getUsersTemp();
 
-    for (const user of userIds) {
-      const producItems = await this.productService.ramdomProdutItem();
-      const response = await this.createOrderSample(
-        {
-          address: '642aee62d8434479d5e1dc0b',
-          orderItems: producItems.map((item) => ({
-            productItem: item.id,
-            quantity: 1,
-            price: item.price,
-          })),
-          paymentMethod: PaymentMethod.COD,
-          shippingFee: 25000,
-        },
-        user,
-      );
+  //   for (const user of userIds) {
+  //     const producItems = await this.productService.ramdomProdutItem();
+  //     const response = await this.createOrderSample(
+  //       {
+  //         address: '642aee62d8434479d5e1dc0b',
+  //         orderItems: producItems.map((item) => ({
+  //           productItem: item.id,
+  //           quantity: 1,
+  //           price: item.price,
+  //         })),
+  //         paymentMethod: PaymentMethod.COD,
+  //         shippingFee: 25000,
+  //       },
+  //       user,
+  //     );
 
-      if (response) {
-        await this.commentSamples(response.data);
-      }
-    }
+  //     if (response) {
+  //       await this.commentSamples(response.data);
+  //     }
+  //   }
 
-    return 'success';
-  }
+  //   return 'success';
+  // }
 
-  async commentSamples(id: string) {
-    const order = await this.orderModel.findById(id);
-    for (const item of order.orderItems) {
-      const orderItem = await this.orderItemModel.findById(item);
+  // async commentSamples(id: string) {
+  //   const order = await this.orderModel.findById(id);
+  //   for (const item of order.orderItems) {
+  //     const orderItem = await this.orderItemModel.findById(item);
 
-      const rating = Math.floor(Math.random() * 4 + 2);
-      let content = '';
+  //     const rating = Math.floor(Math.random() * 4 + 2);
+  //     let content = '';
 
-      if (rating < 3) {
-        content = negative[Math.floor(Math.random() * negative.length)];
-      } else if (rating > 3) {
-        content = positive[Math.floor(Math.random() * positive.length)];
-      } else {
-        content = normal[Math.floor(Math.random() * normal.length)];
-      }
+  //     if (rating < 3) {
+  //       content = negative[Math.floor(Math.random() * negative.length)];
+  //     } else if (rating > 3) {
+  //       content = positive[Math.floor(Math.random() * positive.length)];
+  //     } else {
+  //       content = normal[Math.floor(Math.random() * normal.length)];
+  //     }
 
-      await this.productService.createComment(
-        {
-          orderItemId: orderItem._id,
-          productItemId: orderItem.productItem.toString(),
-          rate: rating,
-          content,
-        },
-        order.user.toString(),
-      );
-    }
-  }
+  //     await this.productService.createComment(
+  //       {
+  //         orderItemId: orderItem._id,
+  //         productItemId: orderItem.productItem.toString(),
+  //         rate: rating,
+  //         content,
+  //       },
+  //       order.user.toString(),
+  //     );
+  //   }
+  // }
 
-  async getNumberItemSellInBrands() {
-    const orderItems = (await this.orderItemModel.aggregate([
-      {
-        $group: {
-          _id: '$productItem',
-          count: { $count: {} },
-        },
-      },
-    ])) as IProductSellCount[];
+  // async createDataSalesQuantity() {
+  //   const orderItems = (await this.orderItemModel.aggregate([
+  //     {
+  //       $group: {
+  //         _id: '$productItem',
+  //         sum: {
+  //           $sum: '$quantity',
+  //         },
+  //       },
+  //     },
+  //   ])) as { _id: string; sum: number }[];
+  //   for (const item of orderItems) {
+  //     const salesQuantity = await this.salesQuantityService.create({
+  //       sold: item.sum,
+  //     });
 
-    const brandCount: IBrandCount[] = [];
+  //     await this.productService.addSalesQuantityToProductItem(
+  //       item._id,
+  //       salesQuantity,
+  //     );
+  //   }
 
-    for (let i = 0; i < orderItems.length; i++) {
-      const prodSellItem = orderItems[i];
-
-      const brandProd = await this.productService.getProdBrandByProdItemId(
-        prodSellItem._id as string,
-      );
-
-      const existBrand = brandCount.find(
-        (brand) => brand.brandId === brandProd.toString(),
-      );
-
-      if (existBrand) {
-        existBrand.count += prodSellItem.count;
-      } else {
-        brandCount.push({
-          brandId: brandProd.toString(),
-          count: prodSellItem.count,
-        });
-      }
-    }
-
-    return brandCount
-      .sort(compareBrandCount)
-      .slice(0, 15)
-      .map((brand) => brand.brandId);
-  }
-
-  async createDataSalesQuantity() {
-    const orderItems = (await this.orderItemModel.aggregate([
-      {
-        $group: {
-          _id: '$productItem',
-          sum: {
-            $sum: '$quantity',
-          },
-        },
-      },
-    ])) as { _id: string; sum: number }[];
-    for (const item of orderItems) {
-      await this.salesQuantityService.create({
-        productItem: item._id.toString(),
-        sold: item.sum,
-      });
-    }
-
-    return 'success';
-  }
+  //   return 'success';
+  // }
 }

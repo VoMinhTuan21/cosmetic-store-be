@@ -200,25 +200,13 @@ export class ProductController {
     return this.productService.getProductItemDetail(productId, itemId);
   }
 
-  @Post('/product-items/category/:id/options?')
+  @Post('/product-items/category/:id?')
   getProductItemsByCategoryWithOtherOptions(
     @Param('id') id: string,
     @Query() query: ProductItemsByCategoryAndOptionsDTO,
     @Body() body: LoadMorePagination,
   ) {
     return this.productService.getProductByCategoryAndOptions(id, body, query);
-  }
-
-  @Post('/product-items/category/:id')
-  getProductItemsByCategory(
-    @Param('id') id: string,
-    @Body() dto: RandomPagination,
-  ) {
-    return this.productService.getProductByCategory(
-      id,
-      dto.previous,
-      dto.limit,
-    );
   }
 
   @Post('/search')
@@ -255,10 +243,10 @@ export class ProductController {
     return this.productService.updateComment(body, commentId);
   }
 
-  @Get('/product-item-random')
-  getProductItemRandom() {
-    return this.productService.ramdomProdutItem();
-  }
+  // @Get('/product-item-random')
+  // getProductItemRandom() {
+  //   return this.productService.ramdomProdutItem();
+  // }
 
   @Post('/product-items/brand/:id/options?')
   getProductItemsByBrandWithOtherOptions(

@@ -34,12 +34,15 @@ export class ProductCardDTO {
   productId: string;
   itemId: string;
   name: ITranslate[];
-  categories: string[];
+  // categories: string[];
   thumbnail: string;
   brand: string;
   price: number;
+  rating: number;
+  sold: number;
+  comments: number;
 }
 
-export class ProductBrandCartDTO extends OmitType(ProductCardDTO, [
-  'categories',
-] as const) {}
+// export class ProductBrandCartDTO extends OmitType(ProductCardDTO, [
+//   'categories',
+// ] as const) {}

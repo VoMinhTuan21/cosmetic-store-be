@@ -73,7 +73,7 @@ import {
   UpdateProductItemDTO,
 } from '../../dto/request';
 import {
-  ProductBrandCartDTO,
+  // ProductBrandCartDTO,
   ProductCardDTO,
   ProductSimPleDTO,
 } from '../../dto/response';
@@ -96,6 +96,7 @@ import {
 import { CategoryService } from '../category/category.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { SalesQuantityService } from '../sales-quantity/sales-quantity.service';
+import { SalesQuantityDocument } from '../../schemas/salesQuantity.schema';
 
 @Injectable()
 export class ProductService {
@@ -801,7 +802,10 @@ export class ProductService {
             { language: 'en', value: nameEn },
           ],
           brand: (prod.brand as BrandDocument).name,
-          categories: prod.categories as string[],
+          // categories: prod.categories as string[],
+          rating: prodItem.rating,
+          sold: (prodItem.salesQuantity as SalesQuantityDocument).sold,
+          comments: prodItem.comments.length,
         });
       }
     }
@@ -970,53 +974,6 @@ export class ProductService {
     }
   }
 
-  async getProductByCategory(
-    categoryId: string,
-    previous: string[] = [],
-    limit: number,
-  ) {
-    try {
-      const ids = await this.categoryService.getListChidrenCategoryIds(
-        categoryId,
-      );
-
-      const products = await this.productModel
-        .find({
-          categories: { $in: ids },
-        })
-        .populate({
-          path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
-          match: {
-            _id: {
-              $nin: previous.map((item) => new mongoose.Types.ObjectId(item)),
-            },
-          },
-          select: '_id price thumbnail productConfigurations',
-        })
-        // .populate('categories', '_id name')
-        .populate('brand', '_id name')
-        .select('_id name categories brand');
-
-      const productItems = await this.convertProductDocumentToProductCard(
-        products,
-      );
-
-      return handleResponseSuccess({
-        data: shuffle<ProductCardDTO>(productItems).splice(0, limit),
-        message: GET_PRODUCT_BY_CATEGORY_SUCCESS,
-      });
-    } catch (error) {
-      return handleResponseFailure({
-        error: ERROR_GET_PRODUCT_BY_CATEGORY,
-        statusCode: HttpStatus.BAD_REQUEST,
-      });
-    }
-  }
-
   async getBrandIdsByCategory(categoryId: string) {
     const ids = await this.categoryService.getListChidrenCategoryIds(
       categoryId,
@@ -1062,11 +1019,17 @@ export class ProductService {
         })
         .populate({
           path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
-          select: '_id price thumbnail productConfigurations',
+          populate: [
+            {
+              path: 'productConfigurations',
+              select: '_id value',
+            },
+            {
+              path: 'salesQuantity',
+              select: '_id sold',
+            },
+          ],
+          select: '_id price thumbnail productConfigurations rating comments',
         })
         .populate('brand', '_id name')
         .select('_id name categories brand productItems');
@@ -1091,6 +1054,8 @@ export class ProductService {
         productItems = productItems.sort((a, b) => b.price - a.price);
       } else if (order === 'asc') {
         productItems = productItems.sort((a, b) => a.price - b.price);
+      } else {
+        productItems = productItems.sort((a, b) => b.sold - a.sold);
       }
 
       let index = productItems.findIndex(
@@ -1141,11 +1106,17 @@ export class ProductService {
         })
         .populate({
           path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
-          select: '_id price thumbnail productConfigurations',
+          populate: [
+            {
+              path: 'productConfigurations',
+              select: '_id value',
+            },
+            {
+              path: 'salesQuantity',
+              select: '_id sold',
+            },
+          ],
+          select: '_id price thumbnail productConfigurations rating comments',
         })
         .populate('brand', '_id name')
         .select('_id name categories brand productItems');
@@ -1170,6 +1141,8 @@ export class ProductService {
         productItems = productItems.sort((a, b) => b.price - a.price);
       } else if (order === 'asc') {
         productItems = productItems.sort((a, b) => a.price - b.price);
+      } else {
+        productItems = productItems.sort((a, b) => b.sold - a.sold);
       }
 
       let index = productItems.findIndex(
@@ -1491,15 +1464,15 @@ export class ProductService {
     return false;
   }
 
-  async ramdomProdutItem() {
-    const productItems = await this.productItemModel.find();
+  // async ramdomProdutItem() {
+  //   const productItems = await this.productItemModel.find();
 
-    const random = shuffle(productItems);
+  //   const random = shuffle(productItems);
 
-    return random
-      .slice(0, 20)
-      .map((item) => ({ id: item._id, price: item.price }));
-  }
+  //   return random
+  //     .slice(0, 20)
+  //     .map((item) => ({ id: item._id, price: item.price }));
+  // }
 
   async recommendItemBased(user: string) {
     try {
@@ -1585,22 +1558,30 @@ export class ProductService {
         });
       }
 
-      let products = await this.productModel
+      const products = await this.productModel
         .find({
           brand: new mongoose.Types.ObjectId(brandId),
         })
         .populate({
           path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
-          select: '_id price thumbnail productConfigurations',
+          populate: [
+            {
+              path: 'productConfigurations',
+              select: '_id value',
+            },
+            {
+              path: 'salesQuantity',
+              select: '_id sold',
+            },
+          ],
+          select: '_id price thumbnail productConfigurations rating comments',
         })
         .populate('brand', '_id name')
         .select('_id name brand productItems');
 
-      let productItems = await this.convertProductBrandToProductCard(products);
+      let productItems = await this.convertProductDocumentToProductCard(
+        products,
+      );
 
       if (from >= 0 && to >= 0) {
         productItems = productItems.filter(
@@ -1612,6 +1593,8 @@ export class ProductService {
         productItems = productItems.sort((a, b) => b.price - a.price);
       } else if (order === 'asc') {
         productItems = productItems.sort((a, b) => a.price - b.price);
+      } else {
+        productItems = productItems.sort((a, b) => b.sold - a.sold);
       }
 
       let index = productItems.findIndex(
@@ -1640,53 +1623,6 @@ export class ProductService {
     }
   }
 
-  async convertProductBrandToProductCard(products: ProductDocument[]) {
-    const productItems: ProductBrandCartDTO[] = [];
-    for (const prod of products) {
-      for (const productItem of prod.productItems) {
-        const prodItem = productItem as ProductItemDocument;
-        // get thumbnail url
-        prodItem.thumbnail = await this.cloudinaryService.getImageUrl(
-          prodItem.thumbnail,
-        );
-
-        // concat name of product with variation name
-        let nameVi = '';
-        let nameEn = '';
-        prod.name.forEach((item) => {
-          if (item.language === 'en') {
-            nameEn = item.value;
-          } else {
-            nameVi = item.value;
-          }
-        });
-        for (const config of prodItem.productConfigurations) {
-          const configItem = config as VariationOptionDocument;
-          configItem.value.forEach((val) => {
-            if (val.language === 'en') {
-              nameEn += ' ' + val.value;
-            } else {
-              nameVi += ' ' + val.value;
-            }
-          });
-        }
-        productItems.push({
-          itemId: prodItem._id,
-          productId: prod._id,
-          price: prodItem.price,
-          thumbnail: prodItem.thumbnail,
-          name: [
-            { language: 'vi', value: nameVi },
-            { language: 'en', value: nameEn },
-          ],
-          brand: (prod.brand as BrandDocument).name,
-        });
-      }
-    }
-
-    return productItems;
-  }
-
   async getCategoryIdByProductId(productId: string) {
     try {
       const product = await this.productModel.findById(productId);
@@ -1700,5 +1636,70 @@ export class ProductService {
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
+  }
+
+  // async addSalesQuantityToProductItem(
+  //   productItemId: string,
+  //   salesQuantityId: string,
+  // ) {
+  //   await this.productItemModel.findOneAndUpdate(
+  //     { _id: productItemId },
+  //     { salesQuantity: salesQuantityId },
+  //   );
+  // }
+
+  async amountOfSoldItemsInBrands() {
+    const result = (await this.productModel.aggregate([
+      {
+        $unwind: '$productItems',
+      },
+      {
+        $lookup: {
+          from: 'productitems',
+          localField: 'productItems',
+          foreignField: '_id',
+          as: 'productItems',
+          pipeline: [
+            {
+              $lookup: {
+                from: 'salesquantities',
+                localField: 'salesQuantity',
+                foreignField: '_id',
+                as: 'salesQuantity',
+              },
+            },
+            {
+              $unwind: '$salesQuantity',
+            },
+          ],
+        },
+      },
+      {
+        $unwind: '$productItems',
+      },
+      {
+        $group: {
+          _id: '$brand',
+          soldItems: {
+            $sum: '$productItems.salesQuantity.sold',
+          },
+        },
+      },
+      {
+        $sort: {
+          soldItems: -1,
+        },
+      },
+      {
+        $limit: 15,
+      },
+    ])) as { _id: string; soldItems: number }[];
+
+    return result.map((item) => item._id);
+  }
+
+  async getSalesQuantityByProductId(id: string) {
+    const productItem = await this.productItemModel.findById(id);
+    return productItem.salesQuantity;
   }
 }

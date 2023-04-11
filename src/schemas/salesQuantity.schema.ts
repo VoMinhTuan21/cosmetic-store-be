@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { SchemaTimestampsConfig } from 'mongoose';
+import { SchemaTimestampsConfig } from 'mongoose';
 
 export type SalesQuantityDocument = SalesQuantity &
   Document &
@@ -10,12 +10,6 @@ export type SalesQuantityDocument = SalesQuantity &
 })
 export class SalesQuantity {
   _id: string;
-
-  @Prop({
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ProductItem',
-  })
-  productItem: string;
 
   @Prop({
     type: Number,

@@ -242,7 +242,7 @@ export class BrandService {
 
   async getBrandRankingSell() {
     try {
-      const brandIds = await this.orderService.getNumberItemSellInBrands();
+      const brandIds = await this.productService.amountOfSoldItemsInBrands();
 
       const popularBrands = await this.brandModel.find({
         _id: { $in: brandIds },
