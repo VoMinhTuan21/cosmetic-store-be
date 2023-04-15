@@ -1006,13 +1006,6 @@ export class OrderService {
 
   //   return 'success';
   // }
-}
-
-    return brandCount
-      .sort(compareBrandCount)
-      .slice(0, 15)
-      .map((brand) => brand.brandId);
-  }
 
   async getOrdersRevenueOrRefundFollowTime(
     timeReport: OrderTimeReport,
