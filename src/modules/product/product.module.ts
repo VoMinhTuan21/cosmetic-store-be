@@ -14,6 +14,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { ProductProfile } from './product.profile';
 import { CategoryModule } from '../category/category.module';
 import { HttpModule } from '@nestjs/axios';
+import { SalesQuantityModule } from '../sales-quantity/sales-quantity.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { HttpModule } from '@nestjs/axios';
       { name: ProductItem.name, schema: ProductItemSchema },
       { name: Comment.name, schema: CommentSchema },
     ]),
+    SalesQuantityModule,
     CloudinaryModule,
     CategoryModule,
     HttpModule,

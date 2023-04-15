@@ -9,3 +9,4 @@ export * from './order-response-message';
 export * from './admin-response-message';
 export const alphabet =
   '0123456789qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM';
+export * from './sales-quantity-message';
