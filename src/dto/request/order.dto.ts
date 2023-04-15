@@ -3,6 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsDateString,
+  IsEnum,
   IsMongoId,
   IsNotEmpty,
   IsNumber,
@@ -10,7 +11,11 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { OrderStatus, PaymentMethod } from '../../constances/enum';
+import {
+  OrderStatus,
+  PaymentMethod,
+  OrderTimeReport,
+} from '../../constances/enum';
 import { PagePagination } from './common.dto';
 
 export class CreateOrderItemDTO {
@@ -191,4 +196,21 @@ export class QueryGetOrdersDashboard extends PagePagination {
   @IsOptional()
   @IsDateString()
   to: string;
+}
+
+export class OrderTimeReportDTO {
+  @ApiProperty({ enum: OrderTimeReport, default: OrderTimeReport.Month })
+  @IsNotEmpty()
+  timeReport: OrderTimeReport;
+
+  @ApiProperty({ enum: OrderStatus, default: OrderStatus.Completed })
+  @IsEnum(OrderStatus)
+  @IsNotEmpty()
+  status: OrderStatus;
+}
+
+export class OrderOverviewDTO {
+  @ApiProperty({ enum: OrderTimeReport, default: OrderTimeReport.Month })
+  @IsNotEmpty()
+  timeReport: OrderTimeReport;
 }

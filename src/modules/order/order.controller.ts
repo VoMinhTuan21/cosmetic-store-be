@@ -14,6 +14,8 @@ import {
   CreateOrderDTO,
   UpdateOrderStatusDTO,
   QueryGetOrdersDashboard,
+  OrderTimeReportDTO,
+  OrderOverviewDTO,
 } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { Request } from 'express';
@@ -65,6 +67,11 @@ export class OrderController {
     return this.orderService.getOrders(status, (req.user as IJWTInfo)._id);
   }
 
+  @Get('/daily-report')
+  getOrderDailyReport() {
+    return this.orderService.getOrderDailyReport();
+  }
+
   @Get('/:orderId')
   checkOrder(@Param('orderId', ValidateMongoId) orderId: string) {
     return this.orderService.checkOrder(orderId);
@@ -86,5 +93,18 @@ export class OrderController {
   @Post('/create-sample-orders')
   createSampleOrder() {
     return this.orderService.createTempOrders();
+  }
+
+  @Post('/revenure-or-refund-follow-time')
+  getOrderRevenueFollowTime(@Body() body: OrderTimeReportDTO) {
+    return this.orderService.getOrdersRevenueOrRefundFollowTime(
+      body.timeReport,
+      body.status,
+    );
+  }
+
+  @Post('/overview-follow-time')
+  getOrderOverviewFollowTime(@Body() body: OrderOverviewDTO) {
+    return this.orderService.getOrderOverviewFollowTime(body.timeReport);
   }
 }

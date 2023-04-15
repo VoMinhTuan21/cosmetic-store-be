@@ -36,3 +36,8 @@ export enum Search {
   Id = 'id',
   Name = 'name',
 }
+
+export enum OrderTimeReport {
+  Month = 'month',
+  Week = 'week',
+}
