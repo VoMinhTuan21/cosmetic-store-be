@@ -35,8 +35,18 @@ import {
   ERROR_REFUND_PAYMENT_WITH_MOMO_ORDER,
   ERROR_CAN_NOT_REFUND_COD_PAYMENT_METHOD,
   REFUND_PAYMENT_WITH_MOMO_SUCCESS,
+  ERROR_GET_ORDER_REVENUE_FOLLOW_TIME,
+  GET_ORDER_REVENUE_FOLLOW_TIME_SUCCESS,
+  ERROR_GET_ORDER_OVERVIEW,
+  GET_ORDER_OVERVIEW_SUCCESS,
+  ERROR_GET_ORDER_REPORT_DAILY,
+  GET_ORDER_REPORT_DAILY_SUCCESS,
 } from '../../constances';
-import { OrderStatus, PaymentMethod } from '../../constances/enum';
+import {
+  OrderStatus,
+  PaymentMethod,
+  OrderTimeReport,
+} from '../../constances/enum';
 import { CreateOrderDTO, CreateOrderItemDTO } from '../../dto/request';
 import {
   OrderDetailResDTO,
@@ -62,6 +72,7 @@ import { generateOrderId } from '../../utils/random-string';
 import { compareBrandCount } from '../../utils/array';
 import { UserService } from '../user/user.service';
 import { SalesQuantityService } from '../sales-quantity/sales-quantity.service';
+import { addDays, subtractDays } from '../../utils/date';
 
 const positive = [
   'Sản phẩm đến nhanh chóng và chất lượng tuyệt vời.',
@@ -995,4 +1006,271 @@ export class OrderService {
 
   //   return 'success';
   // }
+
+  async getOrdersRevenueOrRefundFollowTime(
+    timeReport: OrderTimeReport,
+    status: OrderStatus,
+  ) {
+    try {
+      let query: { [index: string]: any } = {};
+      if (timeReport === 'month') {
+        const firstDayOfYear = new Date(new Date().getFullYear(), 0, 1);
+        const lastDayOfYear = new Date(new Date().getFullYear(), 11, 31);
+        query = {
+          createdAt: { $gte: firstDayOfYear, $lte: lastDayOfYear },
+        };
+      } else if (timeReport === 'week') {
+        const today = new Date();
+        const aWeekAgo = subtractDays(today, 6);
+        query = {
+          createdAt: { $gte: aWeekAgo, $lte: today },
+        };
+      }
+
+      if (status === OrderStatus.NotAcceptOrder) {
+        query = {
+          ...query,
+          paymentMethod: 'MOMO',
+          refund: true,
+        };
+      }
+
+      const orders: IOrderRevenue[] = await this.orderModel.aggregate([
+        {
+          $match: {
+            status: status,
+            ...query,
+          },
+        },
+        {
+          $lookup: {
+            from: 'orderitems',
+            localField: 'orderItems',
+            foreignField: '_id',
+            as: 'orderItems',
+          },
+        },
+        {
+          $unwind: '$orderItems',
+        },
+        {
+          $group: {
+            _id: '$_id',
+            totalPrice: {
+              $sum: {
+                $multiply: ['$orderItems.price', '$orderItems.quantity'],
+              },
+            },
+            createdAt: { $first: '$createdAt' },
+          },
+        },
+      ]);
+
+      if (timeReport === 'month') {
+        const monthRevenue: IRevenueValue[] = [];
+
+        for (let month = 0; month < 12; month++) {
+          const monthOrderRevenue = orders.reduce((monthTotal, currOrder) => {
+            if (currOrder.createdAt.getMonth() === month) {
+              return monthTotal + currOrder.totalPrice;
+            }
+            return monthTotal;
+          }, 0);
+          monthRevenue.push({
+            label: (month + 1).toString(),
+            value: monthOrderRevenue,
+          });
+        }
+
+        return handleResponseSuccess({
+          data: monthRevenue,
+          message: GET_ORDER_REVENUE_FOLLOW_TIME_SUCCESS,
+        });
+      } else if (timeReport === 'week') {
+        const weekRevenue: IRevenueValue[] = [];
+        const today = new Date();
+
+        for (let day = 0; day < 7; day++) {
+          const date = subtractDays(today, day);
+          console.log('date: ', date.getDate());
+          const dateTotalRevenue = orders.reduce((total, currOrder) => {
+            if (currOrder.createdAt.getDate() === date.getDate()) {
+              return total + currOrder.totalPrice;
+            }
+            return total;
+          }, 0);
+          console.log('dateTotalRevenue: ', dateTotalRevenue);
+          weekRevenue.push({
+            value: dateTotalRevenue,
+            label:
+              date.getDate().toString() +
+              '/' +
+              (date.getMonth() + 1).toString(),
+          });
+        }
+
+        return handleResponseSuccess({
+          data: weekRevenue,
+          message: GET_ORDER_REVENUE_FOLLOW_TIME_SUCCESS,
+        });
+      }
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_GET_ORDER_REVENUE_FOLLOW_TIME,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getOrderOverviewFollowTime(revenueTime: OrderTimeReport) {
+    try {
+      let query: { [index: string]: any } = {};
+      if (revenueTime === 'month') {
+        const firstDayOfYear = new Date(new Date().getFullYear(), 0, 1);
+        const lastDayOfYear = new Date(new Date().getFullYear(), 11, 31);
+        query = {
+          createdAt: { $gte: firstDayOfYear, $lte: lastDayOfYear },
+        };
+      } else if (revenueTime === 'week') {
+        const today = new Date();
+        const aWeekAgo = subtractDays(today, 6);
+        query = {
+          createdAt: { $gte: aWeekAgo, $lte: today },
+        };
+      }
+
+      const orderOverview: IOrderOverview[] = await this.orderModel.aggregate([
+        {
+          $match: {
+            ...query,
+          },
+        },
+        {
+          $group: {
+            _id: '$status',
+            count: { $count: {} },
+          },
+        },
+      ]);
+
+      const orderOverviewRes: IOrderOverviewRes[] = [];
+
+      for (let status in OrderStatus) {
+        const orderStatusCount = orderOverview.find(
+          (item) => item._id.toLowerCase() == status.toLowerCase(),
+        );
+        if (orderStatusCount) {
+          orderOverviewRes.push({
+            status,
+            count: orderStatusCount.count,
+          });
+        } else {
+          orderOverviewRes.push({
+            status,
+            count: 0,
+          });
+        }
+      }
+
+      return handleResponseSuccess({
+        message: GET_ORDER_OVERVIEW_SUCCESS,
+        data: orderOverviewRes,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_GET_ORDER_OVERVIEW,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getOrderDailyReport() {
+    try {
+      const today = new Date();
+      const startToday = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+      const tomorrow = addDays(startToday, 1);
+
+      const ordersToday = await this.orderModel
+        .find({
+          createdAt: {
+            $gte: startToday,
+            $lt: tomorrow,
+          },
+        })
+        .count();
+
+      const cancelledOrdersToday = await this.orderModel
+        .find({
+          status: 'cancelled',
+          createdAt: {
+            $gte: startToday,
+            $lt: tomorrow,
+          },
+        })
+        .count();
+
+      // find and calculate total revenue of completed order on today
+      const ordersCompletedToday: IOrderRevenue[] =
+        await this.orderModel.aggregate([
+          {
+            $match: {
+              status: 'completed',
+              createdAt: {
+                $gte: startToday,
+                $lt: tomorrow,
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: 'orderitems',
+              localField: 'orderItems',
+              foreignField: '_id',
+              as: 'orderItems',
+            },
+          },
+          {
+            $unwind: '$orderItems',
+          },
+          {
+            $group: {
+              _id: '$_id',
+              totalPrice: {
+                $sum: {
+                  $multiply: ['$orderItems.price', '$orderItems.quantity'],
+                },
+              },
+              createdAt: { $first: '$createdAt' },
+            },
+          },
+        ]);
+
+      const totalRevenueToday = ordersCompletedToday.reduce(
+        (total, order) => total + order.totalPrice,
+        0,
+      );
+
+      return handleResponseSuccess({
+        message: GET_ORDER_REPORT_DAILY_SUCCESS,
+        data: {
+          numOfOrders: ordersToday,
+          numOfCancelledOrders: cancelledOrdersToday,
+          numOfCompletedOrders: ordersCompletedToday.length,
+          totalRevenueToday,
+        },
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_GET_ORDER_REPORT_DAILY,
+        statusCode: HttpStatus.BAD_GATEWAY,
+      });
+    }
+  }
 }
