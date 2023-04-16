@@ -1187,19 +1187,25 @@ export class ProductService {
         })
         .populate({
           path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
+          populate: [
+            {
+              path: 'productConfigurations',
+              select: '_id value',
+            },
+            {
+              path: 'salesQuantity',
+              select: '_id sold',
+            },
+          ],
           match: {
             _id: {
               $in: data.map((item) => new mongoose.Types.ObjectId(item)),
             },
           },
-          select: '_id price thumbnail productConfigurations',
+          select: '_id price thumbnail productConfigurations rating comments',
         })
         .populate('brand', '_id name')
-        .select('_id name categories brand');
+        .select('_id name categories brand productItems');
 
       const productItems = await this.convertProductDocumentToProductCard(
         products,
@@ -1492,19 +1498,25 @@ export class ProductService {
         })
         .populate({
           path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
+          populate: [
+            {
+              path: 'productConfigurations',
+              select: '_id value',
+            },
+            {
+              path: 'salesQuantity',
+              select: '_id sold',
+            },
+          ],
           match: {
             _id: {
               $in: data.map((item) => new mongoose.Types.ObjectId(item)),
             },
           },
-          select: '_id price thumbnail productConfigurations',
+          select: '_id price thumbnail productConfigurations rating comments',
         })
         .populate('brand', '_id name')
-        .select('_id name categories brand');
+        .select('_id name categories brand productItems');
 
       const productItems = await this.convertProductDocumentToProductCard(
         products,
@@ -1526,6 +1538,7 @@ export class ProductService {
         message: GET_RECOMMEND_ITEM_BASED_SUCCESS,
       });
     } catch (error) {
+      console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_GET_RECOMMEND_ITEM_BASED,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
