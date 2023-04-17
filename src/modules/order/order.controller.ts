@@ -112,4 +112,9 @@ export class OrderController {
   getOrderOverviewFollowTime(@Body() body: OrderOverviewDTO) {
     return this.orderService.getOrderOverviewFollowTime(body.timeReport);
   }
+
+  @Put('/random-fake-order-created-date')
+  radomFakeOrderCreatedDate() {
+    return this.orderService.randomFakeCreatedDateOfOrder();
+  }
 }

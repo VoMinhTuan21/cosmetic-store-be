@@ -19,3 +19,13 @@ export function addDays(date: Date, days: number) {
     tempDate.getDate(),
   );
 }
+
+export function randomlast7Days() {
+  const today = new Date();
+  const randomSubtractDay = Math.floor(Math.random() * 7);
+
+  const tempDate = new Date(today);
+  tempDate.setDate(today.getDate() - randomSubtractDay);
+
+  return tempDate;
+}
