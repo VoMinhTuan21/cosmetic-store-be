@@ -147,6 +147,8 @@ export class ProductService {
         images.push(public_id);
       }
 
+      const salesQuantity = await this.salesQuanitytService.create({ sold: 0 });
+
       const productItem = await this.productItemModel.create({
         price: dto.price,
         quantity: dto.quantity,
@@ -154,6 +156,7 @@ export class ProductService {
         images: images,
         productConfigurations: dto.productConfiguration,
         tags: dto.tags,
+        salesQuantity: salesQuantity,
       });
 
       await this.productModel.findOneAndUpdate(
