@@ -7,6 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MomoPaymentDTO, QueryGetOrdersDashboard } from '../../dto/request';
 import {
+  IOrderAdminTableQuery,
   MomoPaymentRes,
   MomoRefundRes,
   OrderItemAdminResDTO,
@@ -715,20 +716,54 @@ export class OrderService {
         };
       }
 
-      const orders = await this.orderModel
-        .find(condition)
-        .sort({ createdAt: -1 });
+      // const orders = await this.orderModel
+      //   .find(condition)
+      //   .sort({ createdAt: -1 });
 
-      const result: OrderTableResDTO[] = [];
+      const orders: IOrderAdminTableQuery[] = await this.orderModel.aggregate([
+        {
+          $match: {
+            ...condition,
+          },
+        },
+        {
+          $lookup: {
+            from: 'orderitems',
+            localField: 'orderItems',
+            foreignField: '_id',
+            as: 'orderItems',
+          },
+        },
+        {
+          $unwind: '$orderItems',
+        },
+        {
+          $group: {
+            _id: '$_id',
+            totalPrice: {
+              $sum: {
+                $multiply: ['$orderItems.price', '$orderItems.quantity'],
+              },
+            },
+            shippingFee: { $first: '$shippingFee' },
+            orderId: { $first: '$orderId' },
+            refund: { $first: '$refund' },
+            paymentMethod: { $first: '$paymentMethod' },
+            createdAt: { $first: '$createdAt' },
+          },
+        },
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+      ]);
 
-      for (const order of orders) {
-        const data = await this.getOrderById(order._id, true);
-        if (data) {
-          result.push(
-            this.mapper.map(data.data, OrderResDTO, OrderTableResDTO),
-          );
-        }
-      }
+      const result: OrderTableResDTO[] = this.mapper.mapArray(
+        orders,
+        IOrderAdminTableQuery,
+        OrderTableResDTO,
+      );
 
       return handleResponseSuccess({
         data: {

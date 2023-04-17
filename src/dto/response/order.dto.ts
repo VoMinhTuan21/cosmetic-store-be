@@ -85,3 +85,13 @@ export class MomoRefundRes {
   message: string;
   responseTime: number;
 }
+
+export class IOrderAdminTableQuery {
+  _id: string;
+  totalPrice: number;
+  shippingFee: number;
+  orderId: string;
+  refund: boolean;
+  paymentMethod: string;
+  createdAt: string;
+}

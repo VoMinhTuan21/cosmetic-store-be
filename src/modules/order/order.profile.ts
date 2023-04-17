@@ -2,6 +2,7 @@ import { AutomapperProfile, InjectMapper } from '@automapper/nestjs';
 import { createMap, forMember, Mapper, mapFrom } from '@automapper/core';
 import { Injectable } from '@nestjs/common';
 import {
+  IOrderAdminTableQuery,
   OrderDetailResDTO,
   OrderResDTO,
   OrderTableResDTO,
@@ -77,6 +78,35 @@ export class OrderProfile extends AutomapperProfile {
                 0,
               ) + source.shippingFee,
           ),
+        ),
+      );
+      createMap(
+        mapper,
+        IOrderAdminTableQuery,
+        OrderTableResDTO,
+        forMember(
+          (destination) => destination._id,
+          mapFrom((source) => source._id),
+        ),
+        forMember(
+          (destination) => destination.date,
+          mapFrom((source) => source.createdAt),
+        ),
+        forMember(
+          (destination) => destination.orderId,
+          mapFrom((source) => source.orderId),
+        ),
+        forMember(
+          (destination) => destination.paymentMethod,
+          mapFrom((source) => source.paymentMethod),
+        ),
+        forMember(
+          (destination) => destination.refund,
+          mapFrom((source) => source.refund),
+        ),
+        forMember(
+          (destination) => destination.total,
+          mapFrom((source) => source.totalPrice + source.shippingFee),
         ),
       );
     };
