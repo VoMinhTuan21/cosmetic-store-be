@@ -17,6 +17,7 @@ import { TagModule } from './modules/tag/tag.module';
 import { OrderModule } from './modules/order/order.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SalesQuantityModule } from './modules/sales-quantity/sales-quantity.module';
+import { SettingModule } from './modules/setting/setting.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { SalesQuantityModule } from './modules/sales-quantity/sales-quantity.mod
     OrderModule,
     AdminModule,
     SalesQuantityModule,
+    SettingModule,
   ],
   controllers: [],
   providers: [],
