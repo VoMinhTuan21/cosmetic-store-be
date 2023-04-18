@@ -7,6 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MomoPaymentDTO, QueryGetOrdersDashboard } from '../../dto/request';
 import {
+  IOrderAdminTableQuery,
   MomoPaymentRes,
   MomoRefundRes,
   OrderItemAdminResDTO,
@@ -75,7 +76,7 @@ import { generateOrderId } from '../../utils/random-string';
 import { compareBrandCount } from '../../utils/array';
 import { UserService } from '../user/user.service';
 import { SalesQuantityService } from '../sales-quantity/sales-quantity.service';
-import { addDays, subtractDays } from '../../utils/date';
+import { addDays, randomlast7Days, subtractDays } from '../../utils/date';
 
 const positive = [
   'Sản phẩm đến nhanh chóng và chất lượng tuyệt vời.',
@@ -730,20 +731,54 @@ export class OrderService {
         };
       }
 
-      const orders = await this.orderModel
-        .find(condition)
-        .sort({ createdAt: -1 });
+      // const orders = await this.orderModel
+      //   .find(condition)
+      //   .sort({ createdAt: -1 });
 
-      const result: OrderTableResDTO[] = [];
+      const orders: IOrderAdminTableQuery[] = await this.orderModel.aggregate([
+        {
+          $match: {
+            ...condition,
+          },
+        },
+        {
+          $lookup: {
+            from: 'orderitems',
+            localField: 'orderItems',
+            foreignField: '_id',
+            as: 'orderItems',
+          },
+        },
+        {
+          $unwind: '$orderItems',
+        },
+        {
+          $group: {
+            _id: '$_id',
+            totalPrice: {
+              $sum: {
+                $multiply: ['$orderItems.price', '$orderItems.quantity'],
+              },
+            },
+            shippingFee: { $first: '$shippingFee' },
+            orderId: { $first: '$orderId' },
+            refund: { $first: '$refund' },
+            paymentMethod: { $first: '$paymentMethod' },
+            createdAt: { $first: '$createdAt' },
+          },
+        },
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+      ]);
 
-      for (const order of orders) {
-        const data = await this.getOrderById(order._id, true);
-        if (data) {
-          result.push(
-            this.mapper.map(data.data, OrderResDTO, OrderTableResDTO),
-          );
-        }
-      }
+      const result: OrderTableResDTO[] = this.mapper.mapArray(
+        orders,
+        IOrderAdminTableQuery,
+        OrderTableResDTO,
+      );
 
       return handleResponseSuccess({
         data: {
@@ -1042,7 +1077,10 @@ export class OrderService {
         };
       }
 
-      if (status === OrderStatus.NotAcceptOrder) {
+      if (
+        status === OrderStatus.NotAcceptOrder ||
+        status === OrderStatus.Cancelled
+      ) {
         query = {
           ...query,
           paymentMethod: 'MOMO',
@@ -1107,14 +1145,13 @@ export class OrderService {
 
         for (let day = 0; day < 7; day++) {
           const date = subtractDays(today, day);
-          console.log('date: ', date.getDate());
           const dateTotalRevenue = orders.reduce((total, currOrder) => {
             if (currOrder.createdAt.getDate() === date.getDate()) {
               return total + currOrder.totalPrice;
             }
             return total;
           }, 0);
-          console.log('dateTotalRevenue: ', dateTotalRevenue);
+
           weekRevenue.push({
             value: dateTotalRevenue,
             label:
@@ -1285,6 +1322,33 @@ export class OrderService {
       return handleResponseFailure({
         error: ERROR_GET_ORDER_REPORT_DAILY,
         statusCode: HttpStatus.BAD_GATEWAY,
+      });
+    }
+  }
+
+  async randomFakeCreatedDateOfOrder() {
+    try {
+      const orderIds = await this.orderModel.find({}, '_id');
+      for (const id of orderIds) {
+        await this.orderModel.findByIdAndUpdate(
+          id,
+          {
+            $set: {
+              createdAt: randomlast7Days().toISOString(),
+            },
+          },
+          { timestamps: false, strict: false },
+        );
+      }
+      return handleResponseSuccess({
+        message: 'RANDOM_FAKE_CREATED_ORDER_DATE_SUCCESS',
+        data: null,
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: 'ERROR_RANDOM_FAKE_CREATED_ORDER_DATE',
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }
