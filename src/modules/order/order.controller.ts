@@ -16,6 +16,7 @@ import {
   QueryGetOrdersDashboard,
   OrderTimeReportDTO,
   OrderOverviewDTO,
+  GetSellingProductFollowTimeDTO,
 } from '../../dto/request';
 import { JwtGuard } from '../../guards/jwt.guard';
 import { Request } from 'express';
@@ -111,5 +112,13 @@ export class OrderController {
   @Post('/overview-follow-time')
   getOrderOverviewFollowTime(@Body() body: OrderOverviewDTO) {
     return this.orderService.getOrderOverviewFollowTime(body.timeReport);
+  }
+
+  @Post('/selling-products-follow-time')
+  getSellingProductsFollowTime(@Body() body: GetSellingProductFollowTimeDTO) {
+    return this.orderService.getSellingProductFollowTime(
+      body.timeReport,
+      body.limit,
+    );
   }
 }

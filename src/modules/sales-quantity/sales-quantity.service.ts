@@ -31,9 +31,13 @@ export class SalesQuantityService {
     }
   }
 
-  async update(id: string, sold: number) {
+  async update(id: string, sold: number, type: 'add' | 'subtract' = 'add') {
     const salesQuantity = await this.salesQuantityModel.findById(id);
-    salesQuantity.sold += sold;
+    if (type === 'add') {
+      salesQuantity.sold += sold;
+    } else {
+      salesQuantity.sold -= sold;
+    }
 
     await salesQuantity.save();
   }

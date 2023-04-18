@@ -15,6 +15,7 @@ import {
 import mongoose from 'mongoose';
 import { Search } from '../../constances/enum';
 import { PagePagination, Translation } from './common.dto';
+import { OrderOverviewDTO } from './order.dto';
 
 export class CreateProductItemDTO {
   @ApiProperty({
@@ -374,4 +375,13 @@ export class ProductItemsByBrandAndOptionsDTO {
   @IsOptional()
   @IsString()
   order: 'asc' | 'desc' | 'def';
+}
+
+export class GetSellingProductFollowTimeDTO extends OrderOverviewDTO {
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNumber()
+  @Transform(({ value }) => parseInt(value))
+  limit: number;
 }

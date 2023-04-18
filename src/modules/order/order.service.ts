@@ -41,6 +41,8 @@ import {
   GET_ORDER_OVERVIEW_SUCCESS,
   ERROR_GET_ORDER_REPORT_DAILY,
   GET_ORDER_REPORT_DAILY_SUCCESS,
+  GET_SELLING_PRODUCTS_FOLLOW_TIME_SUCCESS,
+  ERROR_GET_SELLING_PRODUCTS_FOLLOW_TIME,
 } from '../../constances';
 import {
   OrderStatus,
@@ -52,6 +54,7 @@ import {
   OrderDetailResDTO,
   OrderItemClientResDTO,
   OrderResDTO,
+  SellingProductFollowTimeDTO,
 } from '../../dto/response';
 import {
   AddressDocument,
@@ -241,6 +244,18 @@ export class OrderService {
         const order = await this.orderModel.findByIdAndDelete(body.orderId);
         for (let i = 0; i < order.orderItems.length; i++) {
           const orderItem = order.orderItems[i];
+
+          const item = await this.orderItemModel.findById(orderItem);
+          const salesQuantity =
+            await this.productService.getSalesQuantityByProductId(
+              item.productItem as string,
+            );
+
+          await this.salesQuantityService.update(
+            salesQuantity.toString(),
+            item.quantity,
+            'subtract',
+          );
 
           const delOrderItem = await this.orderItemModel.findByIdAndDelete(
             orderItem,
@@ -1270,6 +1285,104 @@ export class OrderService {
       return handleResponseFailure({
         error: ERROR_GET_ORDER_REPORT_DAILY,
         statusCode: HttpStatus.BAD_GATEWAY,
+      });
+    }
+  }
+
+  async getSellingProductFollowTime(time: OrderTimeReport, limit: number) {
+    try {
+      let fromDate = new Date();
+      let toDate = new Date();
+
+      if (time === OrderTimeReport.Week) {
+        fromDate = subtractDays(toDate, 6);
+      } else {
+        fromDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+        toDate = new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0);
+      }
+
+      const sellingProducts = (await this.orderModel.aggregate([
+        {
+          $unwind: '$orderItems',
+        },
+        {
+          $match: {
+            createdAt: {
+              $gte: fromDate,
+              $lte: toDate,
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: 'orderitems',
+            foreignField: '_id',
+            localField: 'orderItems',
+            as: 'orderItems',
+          },
+        },
+        {
+          $unwind: '$orderItems',
+        },
+        {
+          $group: {
+            _id: '$orderItems.productItem',
+            sum: {
+              $sum: '$orderItems.quantity',
+            },
+          },
+        },
+        {
+          $sort: {
+            sum: -1,
+          },
+        },
+        {
+          $limit: limit,
+        },
+      ])) as { _id: string; sum: number }[];
+
+      const result: SellingProductFollowTimeDTO[] = [];
+
+      for (const item of sellingProducts) {
+        const product = await this.productService.getProductByProductItemId(
+          item._id,
+        );
+        const productItem = await this.productService.getProductItemById(
+          item._id,
+        );
+
+        const image = await this.cloudinaryService.getImageUrl(
+          productItem.thumbnail,
+        );
+
+        let productItemName = product.name.find(
+          (item) => item.language === 'vi',
+        ).value;
+
+        for (const variationOption of productItem.productConfigurations as VariationOptionDocument[]) {
+          productItemName +=
+            ' ' +
+            variationOption.value.find((item) => item.language === 'vi').value;
+        }
+
+        result.push({
+          itemId: productItem._id,
+          productId: product._id,
+          thumbnail: image,
+          name: productItemName,
+          sold: item.sum,
+        });
+      }
+
+      return handleResponseSuccess({
+        data: result,
+        message: GET_SELLING_PRODUCTS_FOLLOW_TIME_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_GET_SELLING_PRODUCTS_FOLLOW_TIME,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
   }

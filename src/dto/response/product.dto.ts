@@ -1,4 +1,4 @@
-import { OmitType } from '@nestjs/swagger';
+import { OmitType, PickType } from '@nestjs/swagger';
 
 export class ProductDashboardTableDTO {
   _id: string;
@@ -41,6 +41,15 @@ export class ProductCardDTO {
   rating: number;
   sold: number;
   comments: number;
+}
+
+export class SellingProductFollowTimeDTO extends PickType(ProductCardDTO, [
+  'thumbnail',
+  'productId',
+  'itemId',
+]) {
+  name: string;
+  sold: number;
 }
 
 // export class ProductBrandCartDTO extends OmitType(ProductCardDTO, [
