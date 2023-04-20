@@ -1718,4 +1718,20 @@ export class ProductService {
     const productItem = await this.productItemModel.findById(id);
     return productItem.salesQuantity;
   }
+
+  async getProductItemIdsByCategoryId(categoryId: string) {
+    const productItemIds: string[] = [];
+
+    const products = await this.productModel
+      .find({ categories: new mongoose.Types.ObjectId(categoryId) })
+      .populate('productItems');
+
+    for (const product of products) {
+      for (const item of product.productItems as ProductItemDocument[]) {
+        productItemIds.push(item._id);
+      }
+    }
+
+    return productItemIds;
+  }
 }
