@@ -1057,12 +1057,13 @@ export class OrderService {
   //   return 'success';
   // }
 
-  async getOrdersRevenueOrRefundFollowTime(
+  async getOrdersRevenueFollowTime(
     timeReport: OrderTimeReport,
-    status: OrderStatus,
+    categoryId: string,
   ) {
     try {
       let query: { [index: string]: any } = {};
+
       if (timeReport === 'month') {
         const firstDayOfYear = new Date(new Date().getFullYear(), 0, 1);
         const lastDayOfYear = new Date(new Date().getFullYear(), 11, 31);
@@ -1077,47 +1078,79 @@ export class OrderService {
         };
       }
 
-      if (
-        status === OrderStatus.NotAcceptOrder ||
-        status === OrderStatus.Cancelled
-      ) {
-        query = {
-          ...query,
-          paymentMethod: 'MOMO',
-          refund: true,
-        };
-      }
+      let orders: IOrderRevenue[] = [];
 
-      const orders: IOrderRevenue[] = await this.orderModel.aggregate([
-        {
-          $match: {
-            status: status,
-            ...query,
-          },
-        },
-        {
-          $lookup: {
-            from: 'orderitems',
-            localField: 'orderItems',
-            foreignField: '_id',
-            as: 'orderItems',
-          },
-        },
-        {
-          $unwind: '$orderItems',
-        },
-        {
-          $group: {
-            _id: '$_id',
-            totalPrice: {
-              $sum: {
-                $multiply: ['$orderItems.price', '$orderItems.quantity'],
-              },
+      if (categoryId === 'All') {
+        orders = await this.orderModel.aggregate([
+          {
+            $match: {
+              status: 'completed',
+              ...query,
             },
-            createdAt: { $first: '$createdAt' },
           },
-        },
-      ]);
+          {
+            $lookup: {
+              from: 'orderitems',
+              localField: 'orderItems',
+              foreignField: '_id',
+              as: 'orderItems',
+            },
+          },
+          {
+            $unwind: '$orderItems',
+          },
+          {
+            $group: {
+              _id: '$_id',
+              totalPrice: {
+                $sum: {
+                  $multiply: ['$orderItems.price', '$orderItems.quantity'],
+                },
+              },
+              createdAt: { $first: '$createdAt' },
+            },
+          },
+        ]);
+      } else {
+        const productItemIds =
+          await this.productService.getProductItemIdsByCategoryId(categoryId);
+
+        orders = await this.orderModel.aggregate([
+          {
+            $match: {
+              status: 'completed',
+              ...query,
+            },
+          },
+          {
+            $lookup: {
+              from: 'orderitems',
+              localField: 'orderItems',
+              foreignField: '_id',
+              as: 'orderItems',
+            },
+          },
+          {
+            $unwind: '$orderItems',
+          },
+          {
+            $match: {
+              'orderItems.productItem': { $in: productItemIds },
+            },
+          },
+          {
+            $group: {
+              _id: '$_id',
+              totalPrice: {
+                $sum: {
+                  $multiply: ['$orderItems.price', '$orderItems.quantity'],
+                },
+              },
+              createdAt: { $first: '$createdAt' },
+            },
+          },
+        ]);
+      }
 
       if (timeReport === 'month') {
         const monthRevenue: IRevenueValue[] = [];
@@ -1166,6 +1199,116 @@ export class OrderService {
           message: GET_ORDER_REVENUE_FOLLOW_TIME_SUCCESS,
         });
       }
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_GET_ORDER_REVENUE_FOLLOW_TIME,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async getOrdersRevenueOfLastYear(categoryId: string) {
+    try {
+      let query: { [index: string]: any } = {};
+      const firstDayOfYear = new Date(new Date().getFullYear() - 1, 0, 1);
+      const lastDayOfYear = new Date(new Date().getFullYear() - 1, 11, 31);
+      query = {
+        createdAt: { $gte: firstDayOfYear, $lte: lastDayOfYear },
+      };
+
+      let orders: IOrderRevenue[] = [];
+
+      if (categoryId === 'All') {
+        orders = await this.orderModel.aggregate([
+          {
+            $match: {
+              status: 'completed',
+              ...query,
+            },
+          },
+          {
+            $lookup: {
+              from: 'orderitems',
+              localField: 'orderItems',
+              foreignField: '_id',
+              as: 'orderItems',
+            },
+          },
+          {
+            $unwind: '$orderItems',
+          },
+          {
+            $group: {
+              _id: '$_id',
+              totalPrice: {
+                $sum: {
+                  $multiply: ['$orderItems.price', '$orderItems.quantity'],
+                },
+              },
+              createdAt: { $first: '$createdAt' },
+            },
+          },
+        ]);
+      } else {
+        const productItemIds =
+          await this.productService.getProductItemIdsByCategoryId(categoryId);
+        orders = await this.orderModel.aggregate([
+          {
+            $match: {
+              status: 'completed',
+              ...query,
+            },
+          },
+          {
+            $lookup: {
+              from: 'orderitems',
+              localField: 'orderItems',
+              foreignField: '_id',
+              as: 'orderItems',
+            },
+          },
+          {
+            $unwind: '$orderItems',
+          },
+          {
+            $match: {
+              'orderItems.productItem': { $in: productItemIds },
+            },
+          },
+          {
+            $group: {
+              _id: '$_id',
+              totalPrice: {
+                $sum: {
+                  $multiply: ['$orderItems.price', '$orderItems.quantity'],
+                },
+              },
+              createdAt: { $first: '$createdAt' },
+            },
+          },
+        ]);
+      }
+
+      const monthRevenue: IRevenueValue[] = [];
+
+      for (let month = 0; month < 12; month++) {
+        const monthOrderRevenue = orders.reduce((monthTotal, currOrder) => {
+          if (currOrder.createdAt.getMonth() === month) {
+            return monthTotal + currOrder.totalPrice;
+          }
+          return monthTotal;
+        }, 0);
+        monthRevenue.push({
+          label: (month + 1).toString(),
+          value: monthOrderRevenue,
+        });
+      }
+
+      return handleResponseSuccess({
+        data: monthRevenue,
+        message: GET_ORDER_REVENUE_FOLLOW_TIME_SUCCESS,
+      });
     } catch (error) {
       console.log('error: ', error);
       return handleResponseFailure({

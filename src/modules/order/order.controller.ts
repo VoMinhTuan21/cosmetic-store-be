@@ -73,6 +73,11 @@ export class OrderController {
     return this.orderService.getOrderDailyReport();
   }
 
+  @Get('/revenue-of-last-year/:id')
+  getRevenueOfLastYear(@Param('id') id: string) {
+    return this.orderService.getOrdersRevenueOfLastYear(id);
+  }
+
   @Get('/:orderId')
   checkOrder(@Param('orderId', ValidateMongoId) orderId: string) {
     return this.orderService.checkOrder(orderId);
@@ -101,11 +106,11 @@ export class OrderController {
   //   return this.orderService.createDataSalesQuantity();
   // }
 
-  @Post('/revenure-or-refund-follow-time')
+  @Post('/revenue-follow-time')
   getOrderRevenueFollowTime(@Body() body: OrderTimeReportDTO) {
-    return this.orderService.getOrdersRevenueOrRefundFollowTime(
+    return this.orderService.getOrdersRevenueFollowTime(
       body.timeReport,
-      body.status,
+      body.categoryId,
     );
   }
 

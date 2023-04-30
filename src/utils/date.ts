@@ -22,7 +22,7 @@ export function addDays(date: Date, days: number) {
 
 export function randomlast7Days() {
   const today = new Date();
-  const randomSubtractDay = Math.floor(Math.random() * 7);
+  const randomSubtractDay = Math.floor(Math.random() * 474);
 
   const tempDate = new Date(today);
   tempDate.setDate(today.getDate() - randomSubtractDay);

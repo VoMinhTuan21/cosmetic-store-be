@@ -203,10 +203,9 @@ export class OrderTimeReportDTO {
   @IsNotEmpty()
   timeReport: OrderTimeReport;
 
-  @ApiProperty({ enum: OrderStatus, default: OrderStatus.Completed })
-  @IsEnum(OrderStatus)
+  @ApiProperty({ type: String, default: 'All' })
   @IsNotEmpty()
-  status: OrderStatus;
+  categoryId: string;
 }
 
 export class OrderOverviewDTO {
