@@ -822,11 +822,17 @@ export class ProductService {
         .find()
         .populate({
           path: 'productItems',
-          populate: {
-            path: 'productConfigurations',
-            select: '_id value',
-          },
-          select: '_id price thumbnail productConfigurations',
+          populate: [
+            {
+              path: 'productConfigurations',
+              select: '_id value',
+            },
+            {
+              path: 'salesQuantity',
+              select: '_id sold',
+            },
+          ],
+          select: '_id price thumbnail productConfigurations rating comments',
         })
         // .populate('categories', '_id name')
         .populate('brand', '_id name')
