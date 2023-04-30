@@ -18,6 +18,8 @@ import { OrderModule } from './modules/order/order.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SalesQuantityModule } from './modules/sales-quantity/sales-quantity.module';
 import { SettingModule } from './modules/setting/setting.module';
+import { DialogflowModule } from './modules/dialogflow/dialogflow.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -55,8 +57,9 @@ import { SettingModule } from './modules/setting/setting.module';
     AdminModule,
     SalesQuantityModule,
     SettingModule,
+    DialogflowModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}
