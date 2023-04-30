@@ -22,7 +22,7 @@ import { ApiTags } from '@nestjs/swagger';
 
 const credentials = {
   client_email: process.env.GOOGLE_CLIENT_EMAIL,
-  private_key: JSON.parse(process.env.GOOGLE_PRIVATE_KEY),
+  private_key: JSON.parse(process.env.GOOGLE_PRIVATE_KEY as string),
 };
 
 const sessionClient = new dialogflow.SessionsClient({
@@ -63,58 +63,63 @@ export class DialogflowController {
 
   @Post('/webhook')
   webhook(@Body() body: WebhookDTO) {
+    console.log('body: ', body);
     // Make sure this is a page subscription
-    if (body.object == 'page') {
-      // Iterate over each entry
-      // There may be multiple if batched
+    try {
+      if (body.object == 'page') {
+        // Iterate over each entry
+        // There may be multiple if batched
 
-      for (const pageEntry of body.entry) {
-        var pageID = pageEntry.id;
-        var timeOfEvent = pageEntry.time;
+        for (const pageEntry of body.entry) {
+          var pageID = pageEntry.id;
+          var timeOfEvent = pageEntry.time;
 
-        // Secondary Receiver is in control - listen on standby chanel
-        if (pageEntry.standby) {
-          // iterate webhook events from standby channel
-          pageEntry.standby.forEach((event) => {
-            const psid = event.sender.id;
-            const message = event.message;
+          // Secondary Receiver is in control - listen on standby chanel
+          if (pageEntry.standby) {
+            // iterate webhook events from standby channel
+            pageEntry.standby.forEach((event) => {
+              const psid = event.sender.id;
+              const message = event.message;
 
-            console.log('psid: ', psid);
-            console.log('message: ', message);
-          });
-        }
+              console.log('psid: ', psid);
+              console.log('message: ', message);
+            });
+          }
 
-        // Bot in control - listen for messages
-        if (pageEntry.messaging) {
-          // Iterate over each messaging event
-          for (const messagingEvent of pageEntry.messaging) {
-            if (messagingEvent.optin) {
-              this.fbService.receivedAuthentication(messagingEvent);
-            } else if (messagingEvent.message) {
-              this.receivedMessage(messagingEvent);
-            } else if (messagingEvent.delivery) {
-              this.fbService.receivedDeliveryConfirmation(messagingEvent);
-            } else if (messagingEvent.postback) {
-              this.receivedPostback(messagingEvent);
-            } else if (messagingEvent.read) {
-              this.fbService.receivedMessageRead(messagingEvent);
-            } else if (messagingEvent.account_linking) {
-              this.fbService.receivedAccountLink(messagingEvent);
-            } else {
-              console.log(
-                'Webhook received unknown messagingEvent: ',
-                messagingEvent,
-              );
+          // Bot in control - listen for messages
+          if (pageEntry.messaging) {
+            // Iterate over each messaging event
+            for (const messagingEvent of pageEntry.messaging) {
+              if (messagingEvent.optin) {
+                this.fbService.receivedAuthentication(messagingEvent);
+              } else if (messagingEvent.message) {
+                this.receivedMessage(messagingEvent);
+              } else if (messagingEvent.delivery) {
+                this.fbService.receivedDeliveryConfirmation(messagingEvent);
+              } else if (messagingEvent.postback) {
+                this.receivedPostback(messagingEvent);
+              } else if (messagingEvent.read) {
+                this.fbService.receivedMessageRead(messagingEvent);
+              } else if (messagingEvent.account_linking) {
+                this.fbService.receivedAccountLink(messagingEvent);
+              } else {
+                console.log(
+                  'Webhook received unknown messagingEvent: ',
+                  messagingEvent,
+                );
+              }
             }
           }
         }
+
+        body.entry.forEach(function (pageEntry) {});
+
+        // Assume all went well.
+        // You must send back a 200, within 20 seconds
+        return 'success';
       }
-
-      body.entry.forEach(function (pageEntry) {});
-
-      // Assume all went well.
-      // You must send back a 200, within 20 seconds
-      return 'success';
+    } catch (error) {
+      console.log('error: ', error);
     }
   }
 
