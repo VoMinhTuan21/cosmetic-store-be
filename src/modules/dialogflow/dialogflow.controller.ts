@@ -41,7 +41,7 @@ export class DialogflowController {
     private readonly httpService: HttpService,
   ) {}
 
-  @Get('/webhook')
+  @Get('/webhook/')
   verification(@Req() req: Request) {
     console.log('request');
     if (
@@ -61,7 +61,7 @@ export class DialogflowController {
     }
   }
 
-  @Post('/webhook')
+  @Post('/webhook/')
   webhook(@Body() body: WebhookDTO) {
     console.log('body: ', body);
     // Make sure this is a page subscription
