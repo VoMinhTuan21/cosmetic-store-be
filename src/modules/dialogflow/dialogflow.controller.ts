@@ -44,6 +44,11 @@ export class DialogflowController {
   @Get('/webhook/')
   verification(@Req() req: Request) {
     console.log('request');
+    console.log("req.query['hub.mode']: ", req.query['hub.mode']);
+    console.log(
+      "req.query['hub.verify_token']: ",
+      req.query['hub.verify_token'],
+    );
     if (
       req.query['hub.mode'] === 'subscribe' &&
       req.query['hub.verify_token'] === process.env.FB_VERIFY_TOKEN
