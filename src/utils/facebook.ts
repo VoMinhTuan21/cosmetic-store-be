@@ -1,7 +1,11 @@
-import { Request } from 'express';
 import crypto from 'crypto';
+import { IncomingMessage, ServerResponse } from 'http';
 
-export function verifyRequestSignature(req: Request, res: any, buf: any) {
+export function verifyRequestSignature(
+  req: IncomingMessage,
+  res: ServerResponse<IncomingMessage>,
+  buf: Buffer,
+) {
   var signature = req.headers['x-hub-signature'] as string;
   console.log('verifyRequestSignature');
   if (!signature) {
