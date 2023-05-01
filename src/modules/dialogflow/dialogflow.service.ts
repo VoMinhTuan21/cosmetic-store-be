@@ -2,33 +2,34 @@ import { Injectable } from '@nestjs/common';
 import * as dialogflow from 'dialogflow';
 import { FacebookService } from './facebook.service';
 import * as structjson from '../../utils/structjson';
-
-const credentials = {
-  client_email: process.env.GOOGLE_CLIENT_EMAIL,
-  private_key: JSON.parse(process.env.GOOGLE_PRIVATE_KEY as string),
-};
-
-const sessionClient = new dialogflow.SessionsClient({
-  projectId: process.env.GOOGLE_PROJECT_ID,
-  credentials,
-});
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DialogflowService {
-  constructor(private readonly fbService: FacebookService) {}
+  private readonly sessionClient: dialogflow.SessionsClient;
+
+  constructor(
+    private readonly fbService: FacebookService,
+    private readonly configService: ConfigService,
+  ) {
+    const credentials = {
+      client_email: configService.get<string>('GOOGLE_CLIENT_EMAIL'),
+      private_key: JSON.parse(configService.get<string>('GOOGLE_PRIVATE_KEY')),
+    };
+    this.sessionClient = new dialogflow.SessionsClient({
+      projectId: configService.get<string>('GOOGLE_PROJECT_ID'),
+      credentials,
+    });
+  }
 
   async sendTextQueryToDialogFlow(
     sessionIds: Map<string, string>,
-    handleDialogFlowResponse: (
-      sender: string,
-      response: dialogflow.QueryResult,
-    ) => void,
     sender: string,
     text: string,
     params: any = {},
   ) {
-    const sessionPath = sessionClient.sessionPath(
-      process.env.GOOGLE_PROJECT_ID,
+    const sessionPath = this.sessionClient.sessionPath(
+      this.configService.get<string>('GOOGLE_PROJECT_ID'),
       sessionIds.get(sender),
     );
     this.fbService.sendTypingOn(sender);
@@ -38,7 +39,7 @@ export class DialogflowService {
       queryInput: {
         text: {
           text: text,
-          languageCode: process.env.DF_LANGUAGE_CODE,
+          languageCode: this.configService.get<string>('DF_LANGUAGE_CODE'),
         },
       },
       queryParams: {
@@ -47,24 +48,20 @@ export class DialogflowService {
         },
       },
     };
-    const responses = await sessionClient.detectIntent(request);
+    const responses = await this.sessionClient.detectIntent(request);
 
     const result = responses[0].queryResult;
-    handleDialogFlowResponse(sender, result);
+    return result;
   }
 
   async sendEventToDialogFlow(
     sessionIds: Map<string, string>,
-    handleDialogFlowResponse: (
-      sender: string,
-      response: dialogflow.QueryResult,
-    ) => void,
     sender: string,
     event: string,
     params: any = {},
   ) {
-    const sessionPath = sessionClient.sessionPath(
-      process.env.GOOGLE_PROJECT_ID,
+    const sessionPath = this.sessionClient.sessionPath(
+      this.configService.get<string>('GOOGLE_PROJECT_ID'),
       sessionIds.get(sender),
     );
     const request = {
@@ -73,14 +70,15 @@ export class DialogflowService {
         event: {
           name: event,
           parameters: structjson.jsonToStructProto(params), //Dialogflow's v2 API uses gRPC. You'll need a jsonToStructProto method to convert your JavaScript object to a proto struct.
-          languageCode: process.env.DF_LANGUAGE_CODE,
+          languageCode: this.configService.get<string>('DF_LANGUAGE_CODE'),
         },
       },
     };
 
-    const responses = await sessionClient.detectIntent(request);
+    const responses = await this.sessionClient.detectIntent(request);
 
     const result = responses[0].queryResult;
-    handleDialogFlowResponse(sender, result);
+    // handleDialogFlowResponse(sender, result);
+    return result;
   }
 }

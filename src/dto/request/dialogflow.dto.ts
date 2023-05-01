@@ -2,9 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { any } from 'joi';
 
 export class WebhookDTO {
-  @ApiProperty({ type: String })
+  // @ApiProperty({ type: String })
   object: string;
-  @ApiProperty({ type: String, isArray: true })
+  // @ApiProperty({ isArray: true })
   entry: [
     {
       id: string;
@@ -20,6 +20,12 @@ export class WebhookDTO {
             id: string;
           };
           [index: string]: any;
+        },
+      ];
+      hop_context?: [
+        {
+          app_id: number;
+          metadata: string;
         },
       ];
     },
@@ -41,16 +47,7 @@ export class MessagingEvent {
     metadata?: string;
     mid: string;
     text?: string;
-    attachments?: [
-      {
-        type: 'audio' | 'file' | 'image' | 'video' | 'fallback';
-        payload: {
-          url: string;
-          title?: string;
-          sticker_id?: number;
-        };
-      },
-    ];
+    attachments?: Attachment[];
     quick_reply?: QuickReply;
     reply_to?: {
       mid: string;
@@ -80,12 +77,15 @@ export class MessagingEvent {
     token_expiry_timestamp: 'TIMESTAMP';
     user_token_status: 'TOKEN-STATUS';
     notification_messages_status: 'NOTIFICATION-STATUS';
+    ref: string;
   };
   delivery?: {
+    seq: number;
     mids: string[];
     watermark: number;
   };
   read?: {
+    seq: number;
     watermark: number;
   };
   account_linking?: {
@@ -96,4 +96,42 @@ export class MessagingEvent {
 
 export class QuickReply {
   payload: string;
+}
+
+export class Attachment {
+  type: 'audio' | 'file' | 'image' | 'video' | 'fallback';
+  payload: {
+    url: string;
+    title?: string;
+    sticker_id?: number;
+  };
+}
+
+export class ReplyOfQuickReply {
+  content_type: string;
+  title: string;
+  payload: string;
+}
+
+export class MessageData {
+  recipient: {
+    id: string;
+  };
+  message?: {
+    is_echo?: boolean;
+    app_id?: number;
+    metadata?: string;
+    mid?: string;
+    text?: string;
+    attachments?: Attachment[];
+    quick_reply?: QuickReply;
+    reply_to?: {
+      mid: string;
+    };
+    referral?: {
+      product: {
+        id: string;
+      };
+    };
+  };
 }

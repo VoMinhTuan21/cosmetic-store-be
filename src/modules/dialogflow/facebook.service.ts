@@ -1,10 +1,21 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import * as dialogflow from 'dialogflow';
+import {
+  Attachment,
+  MessageData,
+  MessagingEvent,
+  ReplyOfQuickReply,
+} from '../../dto/request/dialogflow.dto';
 
 @Injectable()
 export class FacebookService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async sendPassThread(senderId: string) {
     try {
@@ -12,15 +23,17 @@ export class FacebookService {
         recipient: {
           id: senderId,
         },
-        target_app_id: process.env.FB_TARGET_APP_ID,
+        target_app_id: this.configService.get<number>('FB_TARGET_APP_ID'),
       };
 
       await this.httpService.axiosRef.post(
-        `https://graph.facebook.com/v16.0/${process.env.FB_PAGE_INBOX_ID}/pass_thread_control`,
+        `https://graph.facebook.com/v16.0/${this.configService.get<number>(
+          'FB_PAGE_INBOX_ID',
+        )}/pass_thread_control`,
         requestBody,
         {
           params: {
-            access_token: process.env.FB_PAGE_TOKEN,
+            access_token: this.configService.get<string>('FB_PAGE_TOKEN'),
           },
         },
       );
@@ -29,11 +42,11 @@ export class FacebookService {
     }
   }
 
-  handleMessages(messages, sender) {
-    let self = module.exports;
+  handleMessages(messages: dialogflow.Message[], sender: string) {
+    // let self = module.exports;
     let timeoutInterval = 1100;
-    let previousType;
-    let cardTypes = [];
+    let previousType: string;
+    let cardTypes: dialogflow.Message[] = [];
     let timeout = 0;
     for (var i = 0; i < messages.length; i++) {
       if (
@@ -67,14 +80,14 @@ export class FacebookService {
     }
   }
 
-  handleMessageAttachments(messageAttachments, senderID) {
-    let self = module.exports;
+  handleMessageAttachments(messageAttachments: Attachment[], senderID: string) {
+    // let self = module.exports;
     //for now just reply messageAttachments[0].payload.url
     this.sendTextMessage(senderID, 'Attachment received. Thank you.');
   }
 
   //https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-echo
-  handleEcho(messageId, appId, metadata) {
+  handleEcho(messageId: string, appId: number, metadata: string) {
     // Just logging message echoes to console
     console.log(
       'Received echo for message %s and app %d with metadata %s',
@@ -84,15 +97,20 @@ export class FacebookService {
     );
   }
 
-  handleMessage(message, sender) {
-    let self = module.exports;
+  handleMessage = (message: dialogflow.Message, sender: string) => {
+    // let self = module.exports;
     switch (message.message) {
       case 'text': //text
-        message.text.text.forEach((text) => {
+        for (const text of message.text.text) {
           if (text !== '') {
             this.sendTextMessage(sender, text);
           }
-        });
+        }
+        // message.text.text.forEach((text) => {
+        //   if (text !== '') {
+        //     self.sendTextMessage(sender, text);
+        //   }
+        // });
         break;
       case 'quickReplies': //quick replies
         let replies = [];
@@ -110,19 +128,19 @@ export class FacebookService {
         this.sendImageMessage(sender, message.image.imageUri);
         break;
     }
-  }
+  };
 
-  handleCardMessages(messages, sender) {
+  handleCardMessages(messages: dialogflow.CardMessage[], sender: string) {
     let self = module.exports;
     let elements = [];
     for (var m = 0; m < messages.length; m++) {
       let message = messages[m];
 
-      let buttons = [];
+      let buttons: IButtonFallBack[] = [];
       for (var b = 0; b < message.card.buttons.length; b++) {
         let isLink =
           message.card.buttons[b].postback.substring(0, 4) === 'http';
-        let button;
+        let button: IButtonFallBack;
         if (isLink) {
           button = {
             type: 'web_url',
@@ -158,7 +176,7 @@ export class FacebookService {
    * https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-read
    *
    */
-  receivedMessageRead(event) {
+  receivedMessageRead(event: MessagingEvent) {
     var senderID = event.sender.id;
     var recipientID = event.recipient.id;
 
@@ -182,7 +200,7 @@ export class FacebookService {
    * https://developers.facebook.com/docs/messenger-platform/webhook-reference/account-linking
    *
    */
-  receivedAccountLink(event) {
+  receivedAccountLink(event: MessagingEvent) {
     var senderID = event.sender.id;
     var recipientID = event.recipient.id;
 
@@ -205,7 +223,7 @@ export class FacebookService {
    * these fields at https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-delivered
    *
    */
-  receivedDeliveryConfirmation(event) {
+  receivedDeliveryConfirmation(event: MessagingEvent) {
     var senderID = event.sender.id;
     var recipientID = event.recipient.id;
     var delivery = event.delivery;
@@ -233,7 +251,7 @@ export class FacebookService {
    * https://developers.facebook.com/docs/messenger-platform/webhook-reference/authentication
    *
    */
-  receivedAuthentication(event) {
+  receivedAuthentication(event: MessagingEvent) {
     var senderID = event.sender.id;
     var recipientID = event.recipient.id;
     var timeOfAuth = event.timestamp;
@@ -278,7 +296,7 @@ export class FacebookService {
       var signatureHash = elements[1];
 
       var expectedHash = crypto
-        .createHmac('sha1', process.env.FB_APP_SECRET)
+        .createHmac('sha1', this.configService.get<string>('FB_APP_SECRET'))
         .update(buf)
         .digest('hex');
 
@@ -338,7 +356,12 @@ export class FacebookService {
    * Send a message with Quick Reply buttons.
    *
    */
-  sendQuickReply(recipientId, text, replies, metadata?) {
+  sendQuickReply(
+    recipientId: string,
+    text: string,
+    replies: ReplyOfQuickReply[],
+    metadata?: string,
+  ) {
     let self = module.exports;
     var messageData = {
       recipient: {
@@ -358,7 +381,7 @@ export class FacebookService {
    * Send an image using the Send API.
    *
    */
-  sendImageMessage(recipientId, imageUrl) {
+  sendImageMessage(recipientId: string, imageUrl: string) {
     let self = module.exports;
     var messageData = {
       recipient: {
@@ -391,7 +414,9 @@ export class FacebookService {
         attachment: {
           type: 'image',
           payload: {
-            url: process.env.SERVER_URL + '/assets/instagram_logo.gif',
+            url:
+              this.configService.get<string>('SERVER_URL') +
+              '/assets/instagram_logo.gif',
           },
         },
       },
@@ -414,7 +439,9 @@ export class FacebookService {
         attachment: {
           type: 'audio',
           payload: {
-            url: process.env.SERVER_URL + '/assets/sample.mp3',
+            url:
+              this.configService.get<string>('SERVER_URL') +
+              '/assets/sample.mp3',
           },
         },
       },
@@ -437,7 +464,7 @@ export class FacebookService {
         attachment: {
           type: 'video',
           payload: {
-            url: process.env.SERVER_URL + videoName,
+            url: this.configService.get<string>('SERVER_URL') + videoName,
           },
         },
       },
@@ -460,7 +487,7 @@ export class FacebookService {
         attachment: {
           type: 'file',
           payload: {
-            url: process.env.SERVER_URL + fileName,
+            url: this.configService.get<string>('SERVER_URL') + fileName,
           },
         },
       },
@@ -534,7 +561,7 @@ export class FacebookService {
    * Turn typing indicator on
    *
    */
-  sendTypingOn(recipientId) {
+  sendTypingOn(recipientId: string) {
     let self = module.exports;
     console.log('Turning typing indicator on');
 
@@ -552,7 +579,7 @@ export class FacebookService {
    * Turn typing indicator off
    *
    */
-  sendTypingOff(recipientId) {
+  sendTypingOff(recipientId: string) {
     let self = module.exports;
     console.log('Turning typing indicator off');
     var messageData = {
@@ -583,7 +610,8 @@ export class FacebookService {
             buttons: [
               {
                 type: 'account_link',
-                url: process.env.SERVER_URL + '/authorize',
+                url:
+                  this.configService.get<string>('SERVER_URL') + '/authorize',
               },
             ],
           },
@@ -594,7 +622,7 @@ export class FacebookService {
     this.callSendAPI(messageData);
   }
 
-  sendTextMessage(recipientId, text) {
+  sendTextMessage(recipientId: string, text: string) {
     let self = module.exports;
     var messageData = {
       recipient: {
@@ -618,7 +646,9 @@ export class FacebookService {
         'https://graph.facebook.com/v2.6/me/messages',
         messageData,
         {
-          params: { access_token: process.env.FB_PAGE_TOKEN },
+          params: {
+            access_token: this.configService.get<string>('FB_PAGE_TOKEN'),
+          },
         },
       );
 

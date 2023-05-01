@@ -22,7 +22,7 @@ import { ApiTags } from '@nestjs/swagger';
 
 const credentials = {
   client_email: process.env.GOOGLE_CLIENT_EMAIL,
-  private_key: JSON.parse(process.env.GOOGLE_PRIVATE_KEY as string),
+  private_key: JSON.parse(process.env.GOOGLE_PRIVATE_KEY),
 };
 
 const sessionClient = new dialogflow.SessionsClient({
@@ -67,7 +67,7 @@ export class DialogflowController {
   }
 
   @Post('/webhook/')
-  webhook(@Body() body: WebhookDTO) {
+  webhook(@Body() body: any) {
     console.log('body: ', body);
     // Make sure this is a page subscription
     try {
@@ -130,7 +130,7 @@ export class DialogflowController {
 
   //   funtion util
 
-  receivedMessage(event: MessagingEvent) {
+  async receivedMessage(event: MessagingEvent) {
     var senderID = event.sender.id;
     var recipientID = event.recipient.id;
     var timeOfMessage = event.timestamp;
@@ -162,12 +162,13 @@ export class DialogflowController {
 
     if (messageText) {
       //send message to api.ai
-      this.dialogflowService.sendTextQueryToDialogFlow(
+      const result = await this.dialogflowService.sendTextQueryToDialogFlow(
         sessionIds,
-        this.handleDialogFlowResponse,
         senderID,
         messageText,
       );
+
+      this.handleDialogFlowResponse(senderID, result);
     } else if (messageAttachments) {
       this.fbService.handleMessageAttachments(messageAttachments, senderID);
     }
@@ -238,9 +239,9 @@ export class DialogflowController {
               : '';
           let previos_job =
             this.fbService.isDefined(
-              contexts[0].parameters.fields['previos-job'],
-            ) && contexts[0].parameters.fields['previos-job'] != ''
-              ? contexts[0].parameters.fields['previos-job'].stringValue
+              contexts[0].parameters.fields['previous-job'],
+            ) && contexts[0].parameters.fields['previous-job'] != ''
+              ? contexts[0].parameters.fields['previous-job'].stringValue
               : '';
           let year_of_experience =
             this.fbService.isDefined(
@@ -255,6 +256,10 @@ export class DialogflowController {
               ? contexts[0].parameters.fields['job-vacancy'].stringValue
               : '';
 
+          console.log('user_name: ', user_name);
+          console.log('previos_job: ', previos_job);
+          console.log('phone_number: ', phone_number);
+          console.log('year_of_experience: ', year_of_experience);
           if (
             user_name &&
             previos_job &&
@@ -318,7 +323,7 @@ export class DialogflowController {
     }
   }
 
-  handleQuickReply(
+  async handleQuickReply(
     senderID: string,
     quickReply: QuickReply,
     messageId: string,
@@ -330,12 +335,13 @@ export class DialogflowController {
       quickReplyPayload,
     );
     //send payload to api.ai
-    this.dialogflowService.sendTextQueryToDialogFlow(
+    const result = await this.dialogflowService.sendTextQueryToDialogFlow(
       sessionIds,
-      this.handleDialogFlowResponse,
       senderID,
       quickReplyPayload,
     );
+
+    this.handleDialogFlowResponse(senderID, result);
   }
 
   handleDialogFlowResponse(sender: string, response: dialogflow.QueryResult) {
@@ -370,7 +376,7 @@ export class DialogflowController {
     }
   }
 
-  receivedPostback(event: MessagingEvent) {
+  async receivedPostback(event: MessagingEvent) {
     var senderID = event.sender.id;
     var recipientID = event.recipient.id;
     var timeOfPostback = event.timestamp;
@@ -396,12 +402,14 @@ export class DialogflowController {
         this.greetUserText(senderID);
         break;
       case 'JOB_APPLY':
-        this.dialogflowService.sendEventToDialogFlow(
+        const result = await this.dialogflowService.sendEventToDialogFlow(
           sessionIds,
-          this.handleDialogFlowResponse,
           senderID,
           'JOB_OPENINGS',
         );
+
+        this.handleDialogFlowResponse(senderID, result);
+
         break;
       case 'CHAT':
         this.fbService.sendTextMessage(

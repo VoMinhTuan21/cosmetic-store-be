@@ -8,5 +8,6 @@ import { HttpModule } from '@nestjs/axios';
   imports: [HttpModule],
   providers: [DialogflowService, FacebookService],
   controllers: [DialogflowController],
+  exports: [FacebookService],
 })
 export class DialogflowModule {}
