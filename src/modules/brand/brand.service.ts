@@ -288,4 +288,10 @@ export class BrandService {
       });
     }
   }
+
+  async getBrandIdByName(brandName: string) {
+    if (!brandName) return undefined;
+    const brand = await this.brandModel.findOne({ name: brandName });
+    return brand.id;
+  }
 }

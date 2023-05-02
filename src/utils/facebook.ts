@@ -9,9 +9,7 @@ export async function verifyRequestSignature(
 ) {
   const signature = req.headers['x-hub-signature'] as string;
   // console.log('verifyRequestSignature');
-  if (!signature) {
-    throw new Error("Couldn't validate the signature.");
-  } else {
+  if (signature) {
     console.log('signature: ', signature);
     const elements = signature.split('=');
     const method = elements[0];

@@ -300,4 +300,9 @@ export class TagService {
       });
     }
   }
+
+  async findTagByName(namesTag: string[]) {
+    const tags = await this.tagModel.find({ name: { $in: namesTag } });
+    return tags.map((tag) => tag.id);
+  }
 }

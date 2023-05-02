@@ -17,5 +17,6 @@ import { OrderModule } from '../order/order.module';
   ],
   providers: [BrandService, BrandProfile],
   controllers: [BrandController],
+  exports: [BrandService],
 })
 export class BrandModule {}

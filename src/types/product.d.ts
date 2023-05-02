@@ -61,3 +61,9 @@ declare interface IProductSellCount {
   _id: string;
   count: number;
 }
+
+declare interface IMessengerCard {
+  image: string;
+  url: string;
+  name: string;
+}

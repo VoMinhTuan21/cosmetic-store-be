@@ -1740,4 +1740,126 @@ export class ProductService {
 
     return productItemIds;
   }
+
+  async getProductItemByTags(tagsId: string[], brandId?: string) {
+    console.log('tagsId: ', tagsId);
+    try {
+      let query: { [index: string]: any } = {};
+
+      let result: IMessengerCard[] = [];
+
+      if (tagsId.length > 0) {
+        query = {
+          tags: { $all: tagsId },
+        };
+
+        let prodItems = await this.productItemModel
+          .find({
+            tags: { $all: tagsId },
+          })
+          .populate('productConfigurations')
+          .select('_id thumbnail productConfigurations');
+
+        prodItems = shuffle(prodItems);
+
+        if (prodItems.length === 0) {
+          return [];
+        }
+
+        for (const prodItem of prodItems) {
+          const prod = await this.getProductByProductItemId(prodItem._id);
+
+          if (brandId && prod.brand.toString() !== brandId.toString()) {
+            continue;
+          }
+          // concat name of product with variation name
+          let nameVi = '';
+          prod.name.forEach((item) => {
+            if (item.language === 'vi') {
+              nameVi = item.value;
+            }
+          });
+          for (const config of prodItem.productConfigurations) {
+            const configItem = config as VariationOptionDocument;
+            configItem.value.forEach((val) => {
+              if (val.language === 'vi') {
+                nameVi += ' ' + val.value;
+              }
+            });
+          }
+
+          const image = await this.cloudinaryService.getImageUrl(
+            prodItem.thumbnail,
+          );
+
+          const url = `${this.config.get<string>('FE_URL')}/product/${
+            prod.id
+          }/${prodItem.id}`;
+
+          result.push({
+            image,
+            name: nameVi,
+            url,
+          });
+        }
+      } else {
+        const products = await this.productModel
+          .find({ brand: brandId })
+          .populate({
+            path: 'productItems',
+            populate: {
+              path: 'productConfigurations',
+            },
+            select: '_id thumbnail productConfigurations',
+          })
+          .select('name')
+          .limit(4);
+
+        if (products.length === 0) {
+          return [];
+        }
+
+        for (const product of products) {
+          for (const prodItem of product.productItems as ProductItemDocument[]) {
+            // concat name of product with variation name
+            let nameVi = '';
+            product.name.forEach((item) => {
+              if (item.language === 'vi') {
+                nameVi = item.value;
+              }
+            });
+
+            for (const config of prodItem.productConfigurations) {
+              const configItem = config as VariationOptionDocument;
+              configItem.value.forEach((val) => {
+                if (val.language === 'vi') {
+                  nameVi += ' ' + val.value;
+                }
+              });
+            }
+
+            const image = await this.cloudinaryService.getImageUrl(
+              prodItem.thumbnail,
+            );
+
+            const url = `${this.config.get<string>('FE_URL')}/product/${
+              product.id
+            }/${prodItem._id.toString()}`;
+
+            result.push({
+              image,
+              name: nameVi,
+              url,
+            });
+          }
+        }
+
+        result = shuffle(result);
+      }
+
+      return result.slice(0, 3);
+    } catch (error) {
+      console.log('error: ', error);
+    }
+  }
 }

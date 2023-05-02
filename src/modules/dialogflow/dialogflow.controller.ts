@@ -174,7 +174,7 @@ export class DialogflowController {
     }
   }
 
-  handleDialogFlowAction(
+  async handleDialogFlowAction(
     sender: string,
     action: string,
     messages: dialogflow.Message[],
@@ -182,6 +182,43 @@ export class DialogflowController {
     parameters: any,
   ) {
     switch (action) {
+      case 'faq-product':
+        const category: string = parameters.fields['category'].stringValue;
+        const use: string[] = parameters.fields['use'].listValue.values.map(
+          (value: any) => value.stringValue,
+        );
+        const brand: string = parameters.fields['brand'].stringValue;
+        const skinProblem = parameters.fields['skin_problem'].stringValue;
+        const characteristic = parameters.fields['characteristic'].stringValue;
+        const skinType = parameters.fields['skin_type'].stringValue;
+
+        const prods = await this.dialogflowService.getProductFAQ(
+          category,
+          use,
+          brand,
+          skinProblem,
+          characteristic,
+          skinType,
+        );
+
+        if (prods.length > 0) {
+          const elements = prods.map((prod) => ({
+            title: prod.name,
+            image_url: prod.image,
+            buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
+          }));
+
+          this.fbService.handleMessages(messages, sender);
+
+          this.fbService.sendGenericMessage(sender, elements);
+        } else {
+          this.fbService.sendTextMessage(
+            sender,
+            'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+          );
+        }
+
+        break;
       case 'talk-human':
         this.fbService.sendPassThread(sender);
         this.fbService.handleMessages(messages, sender);

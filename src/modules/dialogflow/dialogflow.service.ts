@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import * as dialogflow from 'dialogflow';
 import { FacebookService } from './facebook.service';
 import * as structjson from '../../utils/structjson';
 import { ConfigService } from '@nestjs/config';
+import { TagService } from '../tag/tag.service';
+import { ProductService } from '../product/product.service';
+import { BrandService } from '../brand/brand.service';
 
 @Injectable()
 export class DialogflowService {
@@ -11,6 +14,9 @@ export class DialogflowService {
   constructor(
     private readonly fbService: FacebookService,
     private readonly configService: ConfigService,
+    private readonly tagService: TagService,
+    private readonly productService: ProductService,
+    private readonly brandService: BrandService,
   ) {
     const credentials = {
       client_email: configService.get<string>('GOOGLE_CLIENT_EMAIL'),
@@ -80,5 +86,37 @@ export class DialogflowService {
     const result = responses[0].queryResult;
     // handleDialogFlowResponse(sender, result);
     return result;
+  }
+
+  async getProductFAQ(
+    category: string,
+    use: string[],
+    brand: string,
+    skinProblem: string,
+    characteristic: string,
+    skinType: string,
+  ) {
+    try {
+      const tagsName = [
+        category,
+        ...use,
+        skinProblem,
+        characteristic,
+        skinType,
+      ];
+
+      const tagsId = await this.tagService.findTagByName(tagsName);
+      console.log('tagsId: ', tagsId);
+      console.log('brand: ', brand);
+      const brandId = await this.brandService.getBrandIdByName(brand);
+
+      const prods = await this.productService.getProductItemByTags(
+        tagsId,
+        brandId,
+      );
+      return prods;
+    } catch (error) {
+      console.log('error: ', error);
+    }
   }
 }

@@ -17,5 +17,6 @@ import { ProductModule } from '../product/product.module';
   ],
   providers: [TagService, TagProfile],
   controllers: [TagController],
+  exports: [TagService],
 })
 export class TagModule {}

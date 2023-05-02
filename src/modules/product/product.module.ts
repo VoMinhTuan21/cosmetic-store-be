@@ -15,6 +15,7 @@ import { ProductProfile } from './product.profile';
 import { CategoryModule } from '../category/category.module';
 import { HttpModule } from '@nestjs/axios';
 import { SalesQuantityModule } from '../sales-quantity/sales-quantity.module';
+import { BrandModule } from '../brand/brand.module';
 
 @Module({
   imports: [
