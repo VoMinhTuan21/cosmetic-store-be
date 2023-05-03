@@ -1862,4 +1862,134 @@ export class ProductService {
       console.log('error: ', error);
     }
   }
+
+  async getProductItemByCategory(categoryId: string, tagId?: string) {
+    let prodItems: IProductItemByCategory[] = [];
+
+    if (tagId) {
+      prodItems = await this.productModel.aggregate([
+        {
+          $match: {
+            categories: new mongoose.Types.ObjectId(categoryId),
+          },
+        },
+        {
+          $lookup: {
+            from: 'productitems',
+            foreignField: '_id',
+            localField: 'productItems',
+            as: 'productItems',
+            pipeline: [
+              {
+                $lookup: {
+                  from: 'variationoptions',
+                  foreignField: '_id',
+                  localField: 'productConfigurations',
+                  as: 'productConfigurations',
+                },
+              },
+              {
+                $project: {
+                  thumbnail: 1,
+                  productConfigurations: 1,
+                  tags: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $unwind: '$productItems',
+        },
+        {
+          $match: {
+            'productItems.tags': new mongoose.Types.ObjectId(tagId),
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            productItems: 1,
+          },
+        },
+      ]);
+    } else {
+      prodItems = await this.productModel.aggregate([
+        {
+          $match: {
+            categories: new mongoose.Types.ObjectId(categoryId),
+          },
+        },
+        {
+          $lookup: {
+            from: 'productitems',
+            foreignField: '_id',
+            localField: 'productItems',
+            as: 'productItems',
+            pipeline: [
+              {
+                $lookup: {
+                  from: 'variationoptions',
+                  foreignField: '_id',
+                  localField: 'productConfigurations',
+                  as: 'productConfigurations',
+                },
+              },
+              {
+                $project: {
+                  thumbnail: 1,
+                  productConfigurations: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $unwind: '$productItems',
+        },
+        {
+          $project: {
+            name: 1,
+            productItems: 1,
+          },
+        },
+      ]);
+    }
+
+    let result: IMessengerCard[] = [];
+
+    for (const productItem of prodItems) {
+      let nameVi = '';
+      productItem.name.forEach((item) => {
+        if (item.language === 'vi') {
+          nameVi = item.value;
+        }
+      });
+
+      for (const config of productItem.productItems.productConfigurations) {
+        config.value.forEach((val) => {
+          if (val.language === 'vi') {
+            nameVi += ' ' + val.value;
+          }
+        });
+      }
+
+      const image = await this.cloudinaryService.getImageUrl(
+        productItem.productItems.thumbnail,
+      );
+
+      const url = `${this.config.get<string>('FE_URL')}/product/${
+        productItem._id
+      }/${productItem.productItems._id.toString()}`;
+
+      result.push({
+        image,
+        name: nameVi,
+        url,
+      });
+    }
+
+    result = shuffle(result).slice(0, 3);
+    return result;
+  }
 }

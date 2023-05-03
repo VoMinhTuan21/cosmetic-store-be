@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { TagService } from '../tag/tag.service';
 import { ProductService } from '../product/product.service';
 import { BrandService } from '../brand/brand.service';
+import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class DialogflowService {
@@ -17,6 +18,7 @@ export class DialogflowService {
     private readonly tagService: TagService,
     private readonly productService: ProductService,
     private readonly brandService: BrandService,
+    private readonly categoryService: CategoryService,
   ) {
     const credentials = {
       client_email: configService.get<string>('GOOGLE_CLIENT_EMAIL'),
@@ -118,5 +120,25 @@ export class DialogflowService {
     } catch (error) {
       console.log('error: ', error);
     }
+  }
+
+  async getProductCategoryFAQ(
+    categoryName: string,
+    skinProblemFacialSkinCare?: string,
+  ) {
+    const categoryId = await this.categoryService.getCategoryIdByName(
+      categoryName,
+    );
+
+    if (skinProblemFacialSkinCare) {
+      const tagId = await this.tagService.findTagByName([
+        skinProblemFacialSkinCare,
+      ]);
+      return await this.productService.getProductItemByCategory(
+        categoryId,
+        tagId[0],
+      );
+    }
+    return await this.productService.getProductItemByCategory(categoryId);
   }
 }

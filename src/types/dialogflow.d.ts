@@ -4,3 +4,9 @@ declare interface IButtonFallBack {
   url?: string;
   payload?: string;
 }
+
+declare interface IReply {
+  content_type: string;
+  title: string;
+  payload: string;
+}

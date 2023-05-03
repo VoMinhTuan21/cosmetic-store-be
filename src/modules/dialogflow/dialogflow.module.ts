@@ -6,9 +6,10 @@ import { HttpModule } from '@nestjs/axios';
 import { TagModule } from '../tag/tag.module';
 import { ProductModule } from '../product/product.module';
 import { BrandModule } from '../brand/brand.module';
+import { CategoryModule } from '../category/category.module';
 
 @Module({
-  imports: [HttpModule, TagModule, ProductModule, BrandModule],
+  imports: [HttpModule, TagModule, ProductModule, BrandModule, CategoryModule],
   providers: [DialogflowService, FacebookService],
   controllers: [DialogflowController],
   exports: [FacebookService],

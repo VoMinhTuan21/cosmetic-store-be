@@ -19,6 +19,7 @@ import {
   WebhookDTO,
 } from '../../dto/request/dialogflow.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { CategoryService } from '../category/category.service';
 
 const credentials = {
   client_email: process.env.GOOGLE_CLIENT_EMAIL,
@@ -39,6 +40,7 @@ export class DialogflowController {
     private readonly fbService: FacebookService,
     private readonly dialogflowService: DialogflowService,
     private readonly httpService: HttpService,
+    private readonly categoryService: CategoryService,
   ) {}
 
   @Get('/webhook/')
@@ -182,6 +184,154 @@ export class DialogflowController {
     parameters: any,
   ) {
     switch (action) {
+      case 'faq-inquire':
+        const commonCategory = [
+          'sữa rửa mặt',
+          'tẩy trang',
+          'toner',
+          'mặt nạ',
+          'tẩy tế bào chết da mặt',
+          'kem nền',
+          'kem lót',
+          'son thỏi',
+          'dầu gội',
+          'sữa tắm',
+        ];
+        let replies: IReply[] = commonCategory.map((cate) => ({
+          content_type: 'text',
+          payload: cate,
+          title: cate,
+        }));
+
+        replies.push({
+          title: 'Không quan tâm',
+          payload: 'Không quan tâm',
+          content_type: 'text',
+        });
+
+        this.fbService.sendQuickReply(
+          sender,
+          (messages[0] as dialogflow.TextMessage).text.text[0],
+          replies,
+        );
+        break;
+
+      case 'faq-skin-type':
+        let faqCategoryRequiredSkin = contexts.filter(function (el) {
+          return el.name.includes('faq-category-required-skin');
+        });
+
+        const categoryWithSkin: string =
+          faqCategoryRequiredSkin[0].parameters.fields[
+            'product-category-required-skin'
+          ].stringValue;
+        const skinTypeFAQ: string =
+          faqCategoryRequiredSkin[0].parameters.fields['skin_type'].stringValue;
+
+        const prodsWithSkinType =
+          await this.dialogflowService.getProductCategoryFAQ(
+            categoryWithSkin,
+            skinTypeFAQ,
+          );
+
+        if (prodsWithSkinType.length > 0) {
+          const elements = prodsWithSkinType.map((prod) => ({
+            title: prod.name,
+            image_url: prod.image,
+            buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
+          }));
+
+          this.fbService.handleMessages(messages, sender);
+
+          this.fbService.sendGenericMessage(sender, elements);
+        } else {
+          this.fbService.sendTextMessage(
+            sender,
+            'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+          );
+        }
+        break;
+
+      case 'faq-category-no-required-skin':
+        const categoryWithoutSkin: string =
+          parameters.fields['category'].stringValue;
+
+        const prodsWithoutSkin =
+          await this.dialogflowService.getProductCategoryFAQ(
+            categoryWithoutSkin,
+          );
+
+        if (prodsWithoutSkin.length > 0) {
+          const elements = prodsWithoutSkin.map((prod) => ({
+            title: prod.name,
+            image_url: prod.image,
+            buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
+          }));
+
+          this.fbService.handleMessages(messages, sender);
+
+          this.fbService.sendGenericMessage(sender, elements);
+        } else {
+          this.fbService.sendTextMessage(
+            sender,
+            'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+          );
+        }
+        break;
+
+      case 'faq-facial-skin-care':
+        console.log('parameters: ', parameters);
+        const categoryFacialSkinCare: string =
+          parameters.fields['category'].stringValue;
+        const skinProblemFacialSkinCare: string =
+          parameters.fields['skin_problem'].stringValue;
+
+        if (skinProblemFacialSkinCare && !categoryFacialSkinCare) {
+          const childCategories =
+            await this.categoryService.getChildrenCategory(
+              '63ea47a39d7b67d0ae6c14fc',
+            );
+          console.log('childCategories: ', childCategories);
+
+          let replies: IReply[] = childCategories.map((cate) => ({
+            content_type: 'text',
+            payload: cate.name[0].value,
+            title: cate.name[0].value,
+          }));
+
+          this.fbService.sendQuickReply(
+            sender,
+            (messages[0] as dialogflow.TextMessage).text.text[0],
+            replies,
+          );
+        } else if (!skinProblemFacialSkinCare && !categoryFacialSkinCare) {
+          this.fbService.handleMessages(messages, sender);
+        } else {
+          const prods = await this.dialogflowService.getProductCategoryFAQ(
+            categoryFacialSkinCare,
+            skinProblemFacialSkinCare,
+          );
+
+          if (prods.length > 0) {
+            const elements = prods.map((prod) => ({
+              title: prod.name,
+              image_url: prod.image,
+              buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
+            }));
+
+            this.fbService.handleMessages(messages, sender);
+
+            this.fbService.sendGenericMessage(sender, elements);
+          } else {
+            this.fbService.sendTextMessage(
+              sender,
+              'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+            );
+          }
+        }
+
+        break;
+
       case 'faq-product':
         const category: string = parameters.fields['category'].stringValue;
         const use: string[] = parameters.fields['use'].listValue.values.map(
@@ -223,135 +373,6 @@ export class DialogflowController {
         this.fbService.sendPassThread(sender);
         this.fbService.handleMessages(messages, sender);
 
-        break;
-      case 'faq-delivery':
-        this.fbService.handleMessages(messages, sender);
-        this.fbService.sendTypingOn(sender);
-
-        setTimeout(function () {
-          const buttons = [
-            {
-              type: 'web_url',
-              url: 'https://chatbot-messenger-test.vercel.app/',
-              title: 'Theo dõi đơn hàng của tôi',
-            },
-            {
-              type: 'phone_number',
-              payload: '0987654321',
-              title: 'Liên hệ với chúng tôi',
-            },
-            {
-              type: 'postback',
-              payload: 'CHAT',
-              title: 'Tiếp tục trò chuyện',
-            },
-          ];
-
-          this.fbService.sendButtonMessage(
-            sender,
-            'Bạn muốn làm gì tiếp theo?',
-            buttons,
-          );
-        });
-        break;
-      case 'detail-application':
-        let filteredContexts = contexts.filter(function (el) {
-          return (
-            el.name.includes('job_application') ||
-            el.name.includes('job-application-details_dialog_context')
-          );
-        });
-        if (filteredContexts.length > 0 && contexts[0].parameters) {
-          let phone_number =
-            this.fbService.isDefined(
-              contexts[0].parameters.fields['phone-number'],
-            ) && contexts[0].parameters.fields['phone-number'] != ''
-              ? contexts[0].parameters.fields['phone-number'].stringValue
-              : '';
-          let user_name =
-            this.fbService.isDefined(
-              contexts[0].parameters.fields['user-name'],
-            ) && contexts[0].parameters.fields['user-name'] != ''
-              ? contexts[0].parameters.fields['user-name'].stringValue
-              : '';
-          let previos_job =
-            this.fbService.isDefined(
-              contexts[0].parameters.fields['previous-job'],
-            ) && contexts[0].parameters.fields['previous-job'] != ''
-              ? contexts[0].parameters.fields['previous-job'].stringValue
-              : '';
-          let year_of_experience =
-            this.fbService.isDefined(
-              contexts[0].parameters.fields['year-of-experience'],
-            ) && contexts[0].parameters.fields['year-of-experience'] != ''
-              ? contexts[0].parameters.fields['year-of-experience'].stringValue
-              : '';
-          let job_vacancy =
-            this.fbService.isDefined(
-              contexts[0].parameters.fields['job-vacancy'],
-            ) && contexts[0].parameters.fields['job-vacancy'] != ''
-              ? contexts[0].parameters.fields['job-vacancy'].stringValue
-              : '';
-
-          console.log('user_name: ', user_name);
-          console.log('previos_job: ', previos_job);
-          console.log('phone_number: ', phone_number);
-          console.log('year_of_experience: ', year_of_experience);
-          if (
-            user_name &&
-            previos_job &&
-            !phone_number &&
-            !year_of_experience
-          ) {
-            let replies = [
-              {
-                content_type: 'text',
-                title: 'Ít hơn 1 năm',
-                payload: 'Ít hơn 1 năm',
-              },
-              {
-                content_type: 'text',
-                title: 'Từ 1 đến 2 năm',
-                payload: 'Từ 1 đến 2 năm',
-              },
-              {
-                content_type: 'text',
-                title: 'Nhiều hơn 2 năm',
-                payload: 'Nhiều hơn 2 năm',
-              },
-            ];
-            this.fbService.sendQuickReply(
-              sender,
-              (messages[0] as dialogflow.TextMessage).text.text[0],
-              replies,
-            );
-          } else if (
-            phone_number != '' &&
-            user_name != '' &&
-            previos_job != '' &&
-            year_of_experience != '' &&
-            job_vacancy != ''
-          ) {
-            let emailContent =
-              'A new job enquiery from ' +
-              user_name +
-              ' for the job: ' +
-              job_vacancy +
-              '.<br> Previous job position: ' +
-              previos_job +
-              '.' +
-              '.<br> Years of experience: ' +
-              year_of_experience +
-              '.' +
-              '.<br> Phone number: ' +
-              phone_number +
-              '.';
-            this.sendEmail('New Job application', emailContent);
-            this.fbService.handleMessages(messages, sender);
-          } else {
-            this.fbService.handleMessages(messages, sender);
-          }
-        }
         break;
 
       default:
@@ -438,22 +459,6 @@ export class DialogflowController {
       case 'GET_STARTED':
         this.greetUserText(senderID);
         break;
-      case 'JOB_APPLY':
-        const result = await this.dialogflowService.sendEventToDialogFlow(
-          sessionIds,
-          senderID,
-          'JOB_OPENINGS',
-        );
-
-        this.handleDialogFlowResponse(senderID, result);
-
-        break;
-      case 'CHAT':
-        this.fbService.sendTextMessage(
-          senderID,
-          'Tôi cũng thích trò chuyện. Bạn có câu hỏi gì cần hỏi tôi không?',
-        );
-        break;
       default:
         //unindentified payload
         this.fbService.sendTextMessage(
@@ -499,7 +504,11 @@ export class DialogflowController {
         );
         this.fbService.sendTextMessage(
           userId,
-          'Xin chào ' + user.first_name + user.last_name + '!',
+          'Xin chào ' +
+            user.first_name +
+            ' ' +
+            user.last_name +
+            '! Tôi là chatbot của Hygge không biết tôi có thể giúp gì được cho bạn',
         );
       } else {
         console.log('Can not get data for fb user with id: ', userId);

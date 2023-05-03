@@ -159,4 +159,11 @@ export class CategoryService {
 
     return result;
   }
+
+  async getCategoryIdByName(categoryName: string) {
+    const category = await this.categoryModel.findOne({
+      'name.value': { $regex: categoryName, $options: 'i' },
+    });
+    return category.id;
+  }
 }

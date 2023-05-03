@@ -67,3 +67,18 @@ declare interface IMessengerCard {
   url: string;
   name: string;
 }
+
+declare interface IProductItemByCategory {
+  _id: string;
+  name: ITranslate[];
+  productItems: {
+    _id: string;
+    thumbnail: string;
+    productConfigurations: {
+      _id: string;
+      parentVariation: string;
+      value: ITranslate[];
+    }[];
+    tags?: string[];
+  };
+}
