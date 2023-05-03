@@ -493,7 +493,8 @@ export class DialogflowController {
         },
       );
 
-      const user = JSON.parse(response.data);
+      console.log('response.data: ', response.data);
+      const user = response.data;
       console.log('getUserData: ', user);
       if (user.first_name) {
         console.log(
@@ -508,7 +509,7 @@ export class DialogflowController {
             user.first_name +
             ' ' +
             user.last_name +
-            '! Tôi là chatbot của Hygge không biết tôi có thể giúp gì được cho bạn',
+            ' ! Tôi là chatbot của Hygge không biết tôi có thể giúp gì được cho bạn',
         );
       } else {
         console.log('Can not get data for fb user with id: ', userId);

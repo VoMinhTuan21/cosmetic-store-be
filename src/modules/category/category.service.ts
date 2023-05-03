@@ -161,9 +161,10 @@ export class CategoryService {
   }
 
   async getCategoryIdByName(categoryName: string) {
+    console.log('categoryName: ', categoryName);
     const category = await this.categoryModel.findOne({
       'name.value': { $regex: categoryName, $options: 'i' },
     });
-    return category.id;
+    return category.id ? category.id : '';
   }
 }

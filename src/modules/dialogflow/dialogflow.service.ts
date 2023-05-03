@@ -130,6 +130,10 @@ export class DialogflowService {
       categoryName,
     );
 
+    if (!categoryId) {
+      return [];
+    }
+
     if (skinProblemFacialSkinCare) {
       const tagId = await this.tagService.findTagByName([
         skinProblemFacialSkinCare,
