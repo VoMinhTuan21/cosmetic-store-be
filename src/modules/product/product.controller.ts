@@ -261,4 +261,11 @@ export class ProductController {
   getCategoryIdOfProduct(@Param('id') id: string) {
     return this.productService.getCategoryIdByProductId(id);
   }
+
+  @ApiBearerAuth('access_token')
+  @UseGuards(JwtGuard)
+  @Get('/has-comments')
+  checkUserHasComments(@Req() req: Request) {
+    return this.productService.checkUserHasComments((req.user as IJWTInfo)._id);
+  }
 }

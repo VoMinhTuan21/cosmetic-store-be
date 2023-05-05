@@ -56,6 +56,8 @@ import {
   ERROR_GET_RECOMMEND_ITEM_BASED,
   GET_CATEGORY_ID_OF_PRODUCT_SUCCESS,
   ERROR_GET_CATEGORY_ID_OF_PRODUCT,
+  CHECK_USER_HAS_COMMENTS_SUCCESS,
+  ERROR_CHECK_USER_HAS_COMMENTS,
 } from '../../constances';
 import { Search } from '../../constances/enum';
 import {
@@ -1991,5 +1993,23 @@ export class ProductService {
 
     result = shuffle(result).slice(0, 3);
     return result;
+  }
+
+  async checkUserHasComments(userId: string) {
+    try {
+      const comments = await this.commentModel.find({
+        user: new mongoose.Types.ObjectId(userId),
+      });
+
+      return handleResponseSuccess({
+        message: CHECK_USER_HAS_COMMENTS_SUCCESS,
+        data: comments.length > 0 ? true : false,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_CHECK_USER_HAS_COMMENTS,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 }

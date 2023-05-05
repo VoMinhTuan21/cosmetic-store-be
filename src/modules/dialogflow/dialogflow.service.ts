@@ -22,7 +22,7 @@ export class DialogflowService {
   ) {
     const credentials = {
       client_email: configService.get<string>('GOOGLE_CLIENT_EMAIL'),
-      private_key: JSON.parse(configService.get<string>('GOOGLE_PRIVATE_KEY')),
+      private_key: configService.get<string>('GOOGLE_PRIVATE_KEY'),
     };
     this.sessionClient = new dialogflow.SessionsClient({
       projectId: configService.get<string>('GOOGLE_PROJECT_ID'),
