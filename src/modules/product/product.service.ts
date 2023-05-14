@@ -1238,6 +1238,7 @@ export class ProductService {
         message: GET_RECOMMEND_CF_SUCCESS,
       });
     } catch (error) {
+      console.log('error: ', error);
       return handleResponseFailure({
         error: ERROR_GET_RECOMMEND_CF,
         statusCode: HttpStatus.BAD_REQUEST,
