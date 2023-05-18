@@ -20,10 +20,12 @@ import {
 } from '../../dto/request/dialogflow.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { CategoryService } from '../category/category.service';
+import { TagService } from '../tag/tag.service';
+import { ConfigService } from '@nestjs/config';
 
 const credentials = {
   client_email: process.env.GOOGLE_CLIENT_EMAIL,
-  private_key: JSON.parse(process.env.GOOGLE_PRIVATE_KEY),
+  private_key: process.env.GOOGLE_PRIVATE_KEY,
 };
 
 const sessionClient = new dialogflow.SessionsClient({
@@ -41,6 +43,8 @@ export class DialogflowController {
     private readonly dialogflowService: DialogflowService,
     private readonly httpService: HttpService,
     private readonly categoryService: CategoryService,
+    private readonly tagService: TagService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get('/webhook/')
@@ -184,119 +188,53 @@ export class DialogflowController {
     parameters: any,
   ) {
     switch (action) {
-      case 'faq-inquire':
-        const commonCategory = [
-          'sữa rửa mặt',
-          'tẩy trang',
-          'toner',
-          'mặt nạ',
-          'tẩy tế bào chết da mặt',
-          'kem nền',
-          'kem lót',
-          'son thỏi',
-          'dầu gội',
-          'sữa tắm',
-        ];
-        let replies: IReply[] = commonCategory.map((cate) => ({
-          content_type: 'text',
-          payload: cate,
-          title: cate,
-        }));
-
-        replies.push({
-          title: 'Không quan tâm',
-          payload: 'Không quan tâm',
-          content_type: 'text',
-        });
-
-        this.fbService.sendQuickReply(
-          sender,
-          (messages[0] as dialogflow.TextMessage).text.text[0],
-          replies,
-        );
-        break;
-
-      case 'faq-skin-type':
-        let faqCategoryRequiredSkin = contexts.filter(function (el) {
-          return el.name.includes('faq-category-required-skin');
-        });
-
-        const categoryWithSkin: string =
-          faqCategoryRequiredSkin[0].parameters.fields[
-            'product-category-required-skin'
-          ].stringValue;
-        const skinTypeFAQ: string =
-          faqCategoryRequiredSkin[0].parameters.fields['skin_type'].stringValue;
-
-        const prodsWithSkinType =
-          await this.dialogflowService.getProductCategoryFAQ(
-            categoryWithSkin,
-            skinTypeFAQ,
-          );
-
-        if (prodsWithSkinType.length > 0) {
-          const elements = prodsWithSkinType.map((prod) => ({
-            title: prod.name,
-            image_url: prod.image,
-            buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
-          }));
-
-          this.fbService.handleMessages(messages, sender);
-
-          this.fbService.sendGenericMessage(sender, elements);
-        } else {
-          this.fbService.sendTextMessage(
-            sender,
-            'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
-          );
-        }
-        break;
-
-      case 'faq-category-no-required-skin':
-        const categoryWithoutSkin: string =
+      case 'faq-consult':
+        const categoryConsult: string =
           parameters.fields['category'].stringValue;
+        const skinTypeConsult: string =
+          parameters.fields['skin-type'].stringValue;
+        const skinProblemConsult: string =
+          parameters.fields['skin-problem'].stringValue;
 
-        const prodsWithoutSkin =
-          await this.dialogflowService.getProductCategoryFAQ(
-            categoryWithoutSkin,
-          );
-
-        if (prodsWithoutSkin.length > 0) {
-          const elements = prodsWithoutSkin.map((prod) => ({
-            title: prod.name,
-            image_url: prod.image,
-            buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
-          }));
-
-          this.fbService.handleMessages(messages, sender);
-
-          this.fbService.sendGenericMessage(sender, elements);
-        } else {
-          this.fbService.sendTextMessage(
-            sender,
-            'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
-          );
-        }
-        break;
-
-      case 'faq-facial-skin-care':
-        console.log('parameters: ', parameters);
-        const categoryFacialSkinCare: string =
-          parameters.fields['category'].stringValue;
-        const skinProblemFacialSkinCare: string =
-          parameters.fields['skin_problem'].stringValue;
-
-        if (skinProblemFacialSkinCare && !categoryFacialSkinCare) {
-          const childCategories =
-            await this.categoryService.getChildrenCategory(
-              '63ea47a39d7b67d0ae6c14fc',
-            );
-          console.log('childCategories: ', childCategories);
-
-          let replies: IReply[] = childCategories.map((cate) => ({
+        if (!categoryConsult) {
+          const commonCategory = [
+            'sữa rửa mặt',
+            'tẩy trang',
+            'toner',
+            'mặt nạ',
+            'tẩy tế bào chết da mặt',
+            'kem nền',
+            'kem lót',
+            'son thỏi',
+            'dầu gội',
+            'sữa tắm',
+          ];
+          let replies: IReply[] = commonCategory.map((cate) => ({
             content_type: 'text',
-            payload: cate.name[0].value,
-            title: cate.name[0].value,
+            payload: cate,
+            title: cate,
+          }));
+
+          replies.push({
+            title: 'Không quan tâm',
+            payload: 'Không quan tâm',
+            content_type: 'text',
+          });
+
+          this.fbService.sendQuickReply(
+            sender,
+            (messages[0] as dialogflow.TextMessage).text.text[0],
+            replies,
+          );
+        } else if (!skinTypeConsult) {
+          const tags = await this.tagService.getChildTagsNameFromParentTag(
+            '6423f8903365ec8c3d972893',
+          );
+
+          let replies: IReply[] = tags.map((cate) => ({
+            content_type: 'text',
+            payload: cate,
+            title: cate,
           }));
 
           this.fbService.sendQuickReply(
@@ -304,33 +242,256 @@ export class DialogflowController {
             (messages[0] as dialogflow.TextMessage).text.text[0],
             replies,
           );
-        } else if (!skinProblemFacialSkinCare && !categoryFacialSkinCare) {
-          this.fbService.handleMessages(messages, sender);
-        } else {
-          const prods = await this.dialogflowService.getProductCategoryFAQ(
-            categoryFacialSkinCare,
-            skinProblemFacialSkinCare,
+        } else if (!skinProblemConsult) {
+          const tags = await this.tagService.getChildTagsNameFromParentTag(
+            '6423f8773365ec8c3d972890',
           );
 
-          if (prods.length > 0) {
-            const elements = prods.map((prod) => ({
-              title: prod.name,
-              image_url: prod.image,
-              buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
-            }));
+          let replies: IReply[] = tags.map((cate) => ({
+            content_type: 'text',
+            payload: cate,
+            title: cate,
+          }));
 
-            this.fbService.handleMessages(messages, sender);
+          this.fbService.sendQuickReply(
+            sender,
+            (messages[0] as dialogflow.TextMessage).text.text[0],
+            replies,
+          );
+        } else {
+          this.fbService.handleMessages(messages, sender);
 
-            this.fbService.sendGenericMessage(sender, elements);
-          } else {
+          console.log('categoryConsult: ', categoryConsult);
+          const tags = await this.dialogflowService.findCommonTagForConsult(
+            'công dụng',
+            categoryConsult,
+          );
+
+          this.fbService.sendTextMessage(
+            sender,
+            tags.map((tag) => '- ' + tag).join('\n'),
+          );
+        }
+        break;
+
+      case 'faq-use':
+        let filteredContexts = contexts.filter(function (el) {
+          return el.name.includes('faq-consult');
+        });
+        if (filteredContexts.length > 0 && contexts[0].parameters) {
+          const skinProblemParam =
+            this.fbService.isDefined(
+              contexts[0].parameters.fields['skin-problem'],
+            ) && contexts[0].parameters.fields['skin-problem'] != ''
+              ? contexts[0].parameters.fields['skin-problem'].stringValue
+              : '';
+
+          const skinTypeParam =
+            this.fbService.isDefined(
+              contexts[0].parameters.fields['skin-type'],
+            ) && contexts[0].parameters.fields['skin-type'] != ''
+              ? contexts[0].parameters.fields['skin-type'].stringValue
+              : '';
+
+          const useParam =
+            this.fbService.isDefined(contexts[0].parameters.fields['use']) &&
+            contexts[0].parameters.fields['use'] != ''
+              ? contexts[0].parameters.fields['use'].listValue.values.map(
+                  (value: any) => value.stringValue,
+                )
+              : '';
+
+          const categoryParam =
+            this.fbService.isDefined(
+              contexts[0].parameters.fields['category'],
+            ) && contexts[0].parameters.fields['category'] != ''
+              ? contexts[0].parameters.fields['category'].stringValue
+              : '';
+
+          console.log('skinProblemParam: ', skinProblemParam);
+          console.log('categoryParam: ', categoryParam);
+          console.log('useParam: ', useParam);
+          console.log('skinTypeParam: ', skinTypeParam);
+
+          if (useParam.length === 0) {
+            const tags = await this.dialogflowService.findCommonTagForConsult(
+              'công dụng',
+              categoryConsult,
+            );
+
             this.fbService.sendTextMessage(
               sender,
-              'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+              tags.map((tag) => '- ' + tag).join('\n'),
             );
+          } else {
+            const categoryId = await this.tagService.findTagByName([
+              categoryParam,
+            ]);
+
+            const otherIds = await this.tagService.findTagByName([
+              skinTypeParam,
+              skinProblemParam,
+              ...useParam,
+            ]);
+
+            const ids = [categoryId[0], ...otherIds];
+
+            console.log('------------------');
+            console.log('ids: ', ids);
+            const resposne = await this.httpService.axiosRef.post<string[]>(
+              `${this.config.get(
+                'RECOMMEND_URL',
+              )}/product-item/recommend-for-chatbot`,
+              ids,
+            );
+            console.log('------------------');
+            console.log('resposne.data: ', resposne.data);
+
+            this.fbService.sendTextMessage(
+              sender,
+              (messages[0] as dialogflow.TextMessage).text.text[0],
+            );
+
+            if (resposne.data.length > 0) {
+              console.log('resposne.data: ', resposne.data);
+              const productCards =
+                await this.dialogflowService.getProductMessengerCardsByIds(
+                  resposne.data,
+                );
+
+              console.log('-------------');
+              console.log('productCards: ', productCards);
+
+              const elements = productCards.map((prod) => ({
+                title: prod.name,
+                image_url: prod.image,
+                buttons: [
+                  { type: 'web_url', title: 'Xem ngay', url: prod.url },
+                ],
+              }));
+
+              this.fbService.sendGenericMessage(sender, elements);
+            }
           }
         }
 
         break;
+
+      // case 'faq-skin-type':
+      //   let faqCategoryRequiredSkin = contexts.filter(function (el) {
+      //     return el.name.includes('faq-category-required-skin');
+      //   });
+
+      //   const categoryWithSkin: string =
+      //     faqCategoryRequiredSkin[0].parameters.fields[
+      //       'product-category-required-skin'
+      //     ].stringValue;
+      //   const skinTypeFAQ: string =
+      //     faqCategoryRequiredSkin[0].parameters.fields['skin_type'].stringValue;
+
+      //   const prodsWithSkinType =
+      //     await this.dialogflowService.getProductCategoryFAQ(
+      //       categoryWithSkin,
+      //       skinTypeFAQ,
+      //     );
+
+      //   if (prodsWithSkinType.length > 0) {
+      //     const elements = prodsWithSkinType.map((prod) => ({
+      //       title: prod.name,
+      //       image_url: prod.image,
+      //       buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
+      //     }));
+
+      //     this.fbService.handleMessages(messages, sender);
+
+      //     this.fbService.sendGenericMessage(sender, elements);
+      //   } else {
+      //     this.fbService.sendTextMessage(
+      //       sender,
+      //       'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+      //     );
+      //   }
+      //   break;
+
+      // case 'faq-category-no-required-skin':
+      //   const categoryWithoutSkin: string =
+      //     parameters.fields['product-category-without-skin'].stringValue;
+
+      //   const prodsWithoutSkin =
+      //     await this.dialogflowService.getProductCategoryFAQ(
+      //       categoryWithoutSkin,
+      //     );
+
+      //   if (prodsWithoutSkin.length > 0) {
+      //     const elements = prodsWithoutSkin.map((prod) => ({
+      //       title: prod.name,
+      //       image_url: prod.image,
+      //       buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
+      //     }));
+
+      //     this.fbService.handleMessages(messages, sender);
+
+      //     this.fbService.sendGenericMessage(sender, elements);
+      //   } else {
+      //     this.fbService.sendTextMessage(
+      //       sender,
+      //       'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+      //     );
+      //   }
+      //   break;
+
+      // case 'faq-facial-skin-care':
+      //   console.log('parameters: ', parameters);
+      //   const categoryFacialSkinCare: string =
+      //     parameters.fields['category'].stringValue;
+      //   const skinProblemFacialSkinCare: string =
+      //     parameters.fields['skin_problem'].stringValue;
+
+      //   if (skinProblemFacialSkinCare && !categoryFacialSkinCare) {
+      //     const childCategories =
+      //       await this.categoryService.getChildrenCategory(
+      //         '63ea47a39d7b67d0ae6c14fc',
+      //       );
+      //     console.log('childCategories: ', childCategories);
+
+      //     let replies: IReply[] = childCategories.map((cate) => ({
+      //       content_type: 'text',
+      //       payload: cate.name[0].value,
+      //       title: cate.name[0].value,
+      //     }));
+
+      //     this.fbService.sendQuickReply(
+      //       sender,
+      //       (messages[0] as dialogflow.TextMessage).text.text[0],
+      //       replies,
+      //     );
+      //   } else if (!skinProblemFacialSkinCare && !categoryFacialSkinCare) {
+      //     this.fbService.handleMessages(messages, sender);
+      //   } else {
+      //     const prods = await this.dialogflowService.getProductCategoryFAQ(
+      //       categoryFacialSkinCare,
+      //       skinProblemFacialSkinCare,
+      //     );
+
+      //     if (prods.length > 0) {
+      //       const elements = prods.map((prod) => ({
+      //         title: prod.name,
+      //         image_url: prod.image,
+      //         buttons: [{ type: 'web_url', title: 'Xem ngay', url: prod.url }],
+      //       }));
+
+      //       this.fbService.handleMessages(messages, sender);
+
+      //       this.fbService.sendGenericMessage(sender, elements);
+      //     } else {
+      //       this.fbService.sendTextMessage(
+      //         sender,
+      //         'Xin lỗi, tôi không tìm thấy sản phẩm phù hợp với yêu cầu của bạn',
+      //       );
+      //     }
+      //   }
+
+      //   break;
 
       case 'faq-product':
         const category: string = parameters.fields['category'].stringValue;
@@ -369,12 +530,6 @@ export class DialogflowController {
         }
 
         break;
-      case 'talk-human':
-        this.fbService.sendPassThread(sender);
-        this.fbService.handleMessages(messages, sender);
-
-        break;
-
       default:
         //unhandled action, just send back the text
         this.fbService.handleMessages(messages, sender);
@@ -448,14 +603,6 @@ export class DialogflowController {
     var payload = event.postback.payload;
 
     switch (payload) {
-      case 'CARE_HELP':
-        this.fbService.sendTextMessage(
-          senderID,
-          'Bạn đã tắt Bot. Nhân viên tư vấn sẽ chat với bạn trong vòng ít phút nữa',
-        );
-        this.fbService.sendPassThread(senderID);
-
-        break;
       case 'GET_STARTED':
         this.greetUserText(senderID);
         break;

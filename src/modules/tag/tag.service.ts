@@ -305,4 +305,29 @@ export class TagService {
     const tags = await this.tagModel.find({ name: { $in: namesTag } });
     return tags.map((tag) => tag.id);
   }
+
+  async getChildTagsOfParentTag(parentTagId: string) {
+    console.log('parentTagId: ', parentTagId);
+    const childTags = await this.tagModel.find({
+      parent: new mongoose.Types.ObjectId(parentTagId),
+    });
+    return childTags.map((tag) => tag.id);
+  }
+
+  async findTagsByIds(tagIds: string[]) {
+    const tags = await this.tagModel
+      .find({ _id: { $in: tagIds } })
+      .select('name');
+    return tags.map((tag) => tag.name);
+  }
+
+  async getChildTagsNameFromParentTag(parentTagId: string) {
+    const childTags = await this.tagModel.find({ parent: parentTagId });
+    return childTags.map((tag) => tag.name);
+  }
+
+  async getGroupTagIdByName(tagName: string) {
+    const tag = await this.tagGroupModel.findOne({ name: tagName });
+    return tag.id;
+  }
 }

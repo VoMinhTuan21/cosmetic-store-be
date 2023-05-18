@@ -22,7 +22,7 @@ export class DialogflowService {
   ) {
     const credentials = {
       client_email: configService.get<string>('GOOGLE_CLIENT_EMAIL'),
-      private_key: JSON.parse(configService.get<string>('GOOGLE_PRIVATE_KEY')),
+      private_key: configService.get<string>('GOOGLE_PRIVATE_KEY'),
     };
     this.sessionClient = new dialogflow.SessionsClient({
       projectId: configService.get<string>('GOOGLE_PROJECT_ID'),
@@ -144,5 +144,47 @@ export class DialogflowService {
       );
     }
     return await this.productService.getProductItemByCategory(categoryId);
+  }
+
+  async findCommonTagForConsult(nameTag: string, categoryTagName: string) {
+    try {
+      const parentTag: string = await this.tagService.getGroupTagIdByName(
+        nameTag,
+      );
+      console.log('parentTag: ', parentTag);
+      console.log('--------------------');
+
+      const categoryTag = await this.tagService.findTagByName([
+        categoryTagName,
+      ]);
+      console.log('categoryTag: ', categoryTag);
+      console.log('--------------------');
+
+      const childTags = await this.tagService.getChildTagsOfParentTag(
+        parentTag,
+      );
+      console.log('childTags: ', childTags);
+      console.log('--------------------');
+
+      const commonTagsInProds =
+        await this.productService.findCommonTagsInProdOfCategory(
+          categoryTag[0],
+        );
+      console.log('commonTagsInProds: ', commonTagsInProds);
+      console.log('--------------------');
+
+      const commonTagsId = childTags.filter((value) =>
+        commonTagsInProds.includes(value),
+      );
+
+      const commonTagsName = await this.tagService.findTagsByIds(commonTagsId);
+      return commonTagsName;
+    } catch (error) {
+      console.log('error: ', error);
+    }
+  }
+
+  async getProductMessengerCardsByIds(ids: string[]) {
+    return await this.productService.getProductMessengerCardsByIds(ids);
   }
 }

@@ -58,6 +58,7 @@ import {
   ERROR_GET_CATEGORY_ID_OF_PRODUCT,
   CHECK_USER_HAS_COMMENTS_SUCCESS,
   ERROR_CHECK_USER_HAS_COMMENTS,
+  ERROR_FIND_COMMON_CHILD_TAGS_OF_PARENT_TAG_IN_PRODUCT,
 } from '../../constances';
 import { Search } from '../../constances/enum';
 import {
@@ -2011,5 +2012,70 @@ export class ProductService {
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
+  }
+
+  async findCommonTagsInProdOfCategory(categoryTagId: string) {
+    const productItems = await this.productItemModel.find({
+      tags: categoryTagId,
+    });
+
+    const tempTags: string[] = [];
+    for (const prodItem of productItems) {
+      tempTags.push(...prodItem.tags.map((tag: any) => tag.toString()));
+    }
+
+    const tags = new Set(tempTags);
+
+    return Array.from(tags);
+  }
+
+  async getProductMessengerCardsByIds(ids: string[]) {
+    let result: IMessengerCard[] = [];
+
+    let prodItems = await this.productItemModel
+      .find({
+        _id: { $in: ids.map((item) => new mongoose.Types.ObjectId(item)) },
+      })
+      .populate('productConfigurations')
+      .select('_id thumbnail productConfigurations');
+
+    if (prodItems.length === 0) {
+      return result;
+    }
+
+    for (const prodItem of prodItems) {
+      const prod = await this.getProductByProductItemId(prodItem._id);
+      // concat name of product with variation name
+      let nameVi = '';
+      prod.name.forEach((item) => {
+        if (item.language === 'vi') {
+          nameVi = item.value;
+        }
+      });
+      for (const config of prodItem.productConfigurations) {
+        const configItem = config as VariationOptionDocument;
+        configItem.value.forEach((val) => {
+          if (val.language === 'vi') {
+            nameVi += ' ' + val.value;
+          }
+        });
+      }
+
+      const image = await this.cloudinaryService.getImageUrl(
+        prodItem.thumbnail,
+      );
+
+      const url = `${this.config.get<string>('FE_URL')}/product/${prod.id}/${
+        prodItem.id
+      }`;
+
+      result.push({
+        image,
+        name: nameVi,
+        url,
+      });
+    }
+
+    return result;
   }
 }
