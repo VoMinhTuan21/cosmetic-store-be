@@ -23,6 +23,7 @@ import {
   GET_BRANDS_RANKING_SELL_SUCCESS,
   ERROR_GET_BRAND_NAME_BY_ID,
   GET_BRAND_NAME_BY_ID_SUCCESS,
+  ERROR_THIS_BRAND_IS_BEING_USED,
 } from '../../constances';
 import { BrandNameDTO, BrandResDTO } from '../../dto/response';
 import { Brand, BrandDocument } from '../../schemas';
@@ -141,6 +142,17 @@ export class BrandService {
 
   async delete(brandId: string) {
     try {
+      const isBeingUsed = await this.productService.checkBandIsBeingUsed(
+        brandId,
+      );
+
+      if (isBeingUsed) {
+        return handleResponseFailure({
+          error: ERROR_THIS_BRAND_IS_BEING_USED,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
       const deletedBrand = await this.brandModel.findByIdAndDelete(brandId);
       this.cloudinaryService.deleteImage(deletedBrand.logo);
 
