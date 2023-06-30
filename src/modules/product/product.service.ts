@@ -2013,4 +2013,12 @@ export class ProductService {
       });
     }
   }
+
+  async checkVariationOptionIsBeingUsed(id: string) {
+    const productItem = await this.productItemModel.findOne({
+      productConfigurations: new mongoose.Types.ObjectId(id),
+    });
+
+    return productItem ? true : false;
+  }
 }

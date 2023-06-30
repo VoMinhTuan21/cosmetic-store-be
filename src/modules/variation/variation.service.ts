@@ -7,12 +7,15 @@ import {
   CREATE_VARIATION_OPTION_SUCCESS,
   CREATE_VARIATION_SUCCESS,
   DELETE_VARIATION_OPTION_SUCCESS,
+  DELETE_VARIATION_SUCCESS,
   ERROR_CREATE_VARIATION,
   ERROR_CREATE_VARIATION_OPTION,
+  ERROR_DELETE_VARIATION,
   ERROR_DELETE_VARIATION_OPTION,
   ERROR_GET_VARIATION,
   ERROR_GET_VARIATION_OPTION,
   ERROR_GET_VARIATION_TABLE,
+  ERROR_THIS_OPTION_IS_BEING_USED,
   ERROR_VARIATION_EXISTED,
   ERROR_VARIATION_OPTION_EXISTED,
   GET_VARIATION_OPTION_SUCCESS,
@@ -33,6 +36,7 @@ import {
   handleResponseFailure,
   handleResponseSuccess,
 } from '../../utils/handle-response';
+import { ProductService } from '../product/product.service';
 
 @Injectable()
 export class VariationService {
@@ -42,6 +46,7 @@ export class VariationService {
     @InjectModel(VariationOption.name)
     private readonly variationOptionModel: Model<VariationOptionDocument>,
     @InjectMapper() private readonly mapper: Mapper,
+    private readonly productService: ProductService,
   ) {}
 
   async createVariation(dto: CreateVariation) {
@@ -257,6 +262,16 @@ export class VariationService {
 
   async deleteVariationOption(id: string) {
     try {
+      const isBeingUsed =
+        await this.productService.checkVariationOptionIsBeingUsed(id);
+
+      if (isBeingUsed) {
+        return handleResponseFailure({
+          error: ERROR_THIS_OPTION_IS_BEING_USED,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
       await this.variationOptionModel.findByIdAndDelete(id);
       return handleResponseSuccess({
         data: id,
@@ -264,8 +279,48 @@ export class VariationService {
       });
     } catch (error) {
       return handleResponseFailure({
-        error: ERROR_DELETE_VARIATION_OPTION,
-        statusCode: HttpStatus.BAD_REQUEST,
+        error: error.response?.error || ERROR_DELETE_VARIATION_OPTION,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async deleteVariation(id: string) {
+    try {
+      const variationOptions = await this.variationOptionModel.find({
+        parentVariation: new mongoose.Types.ObjectId(id),
+      });
+
+      if (variationOptions.length > 0) {
+        for (const option of variationOptions) {
+          const isBeingUsed =
+            await this.productService.checkVariationOptionIsBeingUsed(
+              option._id.toString(),
+            );
+
+          if (isBeingUsed) {
+            return handleResponseFailure({
+              error: `ERROR_${option._id}_IS_BEING_USED`,
+              statusCode: HttpStatus.CONFLICT,
+            });
+          }
+        }
+
+        for (const option of variationOptions) {
+          await this.deleteVariationOption(option._id.toString());
+        }
+      }
+
+      await this.variationModel.findByIdAndDelete(id);
+
+      return handleResponseSuccess({
+        data: id,
+        message: DELETE_VARIATION_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_DELETE_VARIATION,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }
