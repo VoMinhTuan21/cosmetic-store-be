@@ -268,4 +268,9 @@ export class ProductController {
   checkUserHasComments(@Req() req: Request) {
     return this.productService.checkUserHasComments((req.user as IJWTInfo)._id);
   }
+
+  @Get('/check-category-used/:id')
+  checkCategoryIsUsed(@Param('id') id: string) {
+    return this.productService.checkCategoryIsBeingUsed(id);
+  }
 }

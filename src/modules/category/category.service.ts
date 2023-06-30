@@ -5,8 +5,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import {
   CREATE_CATEGORY_SUCCESS,
+  DELETE_CATEGORY_SUCCESS,
   ERROR_CATEGORY_EXISTED,
   ERROR_CREATE_CATEGORY,
+  ERROR_DELETE_CATEGORY,
   ERROR_GET_CATEGORIES,
   ERROR_GET_CATEGORY_LEAF,
   GET_CATEGORIES_SUCCESS,
@@ -166,5 +168,33 @@ export class CategoryService {
       'name.value': { $regex: categoryName, $options: 'i' },
     });
     return category.id ? category.id : '';
+  }
+
+  async deletCategory(id: string) {
+    try {
+      const category = await this.categoryModel.findById(id);
+
+      if (category.icon) {
+        this.cloudinaryService.deleteImage(category.icon);
+      }
+
+      const children = await this.getListChidrenCategoryIds(id);
+
+      if (children.length > 0) {
+        for (const childId of children) {
+          await this.categoryModel.findByIdAndDelete(childId);
+        }
+      }
+
+      return handleResponseSuccess({
+        message: DELETE_CATEGORY_SUCCESS,
+        data: id,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_DELETE_CATEGORY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 }
