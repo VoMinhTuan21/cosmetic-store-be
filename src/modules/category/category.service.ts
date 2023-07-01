@@ -245,7 +245,7 @@ export class CategoryService {
           'name.value': nameVi,
         });
 
-        if (existedCategoryVi) {
+        if (existedCategoryVi && existedCategoryVi._id.toString() !== id) {
           return handleResponseFailure({
             error: ERROR_THIS_VI_NAME_HAS_ALREADY_BEEN_USED,
             statusCode: HttpStatus.CONFLICT,
@@ -258,7 +258,7 @@ export class CategoryService {
           'name.value': nameEn,
         });
 
-        if (existedCategoryEn) {
+        if (existedCategoryEn && existedCategoryEn._id.toString() !== id) {
           return handleResponseFailure({
             error: ERROR_THIS_EN_NAME_HAS_ALREADY_BEEN_USED,
             statusCode: HttpStatus.CONFLICT,
