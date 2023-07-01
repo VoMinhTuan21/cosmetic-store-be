@@ -50,9 +50,19 @@ export class CategoryService {
         name: body.name,
       });
 
+      const ids: string[] = [body.parentCategory, newCategory.id];
+
+      const parent = await this.categoryModel.findById(body.parentCategory);
+      if (parent.parentCategory) {
+        ids.unshift(parent.parentCategory.toString());
+      }
+
       return handleResponseSuccess({
         message: CREATE_CATEGORY_SUCCESS,
-        data: newCategory,
+        data: {
+          ids,
+          newCategory,
+        },
       });
     } catch (error) {
       console.log('error: ', error);
