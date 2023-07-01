@@ -176,6 +176,27 @@ export class CategoryService {
     return result;
   }
 
+  async getAllChidrenCategoryIds(parentId: string) {
+    const result: string[] = [];
+
+    const children = await this.getChildrenCategory(parentId);
+    if (children.length <= 0) {
+      return [];
+    }
+
+    for (const child of children) {
+      const grandChildren = await this.getChildrenCategory(child._id);
+      if (grandChildren.length > 0) {
+        for (const grandChild of grandChildren) {
+          result.push(grandChild._id);
+        }
+      }
+      result.push(child._id);
+    }
+
+    return result;
+  }
+
   async getCategoryIdByName(categoryName: string) {
     console.log('categoryName: ', categoryName);
     const category = await this.categoryModel.findOne({
@@ -206,7 +227,9 @@ export class CategoryService {
         this.cloudinaryService.deleteImage(category.icon);
       }
 
-      const children = await this.getListChidrenCategoryIds(id);
+      const children = await this.getAllChidrenCategoryIds(id);
+
+      children.push(id);
 
       if (children.length > 0) {
         for (const childId of children) {

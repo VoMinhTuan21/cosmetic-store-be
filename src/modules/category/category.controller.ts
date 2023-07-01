@@ -46,4 +46,9 @@ export class CategoryController {
   updateCategoryChild(@Param('id') id: string, @Body() dto: UpdateCategoryDTO) {
     return this.categoryService.updateCategoryChild(id, dto.nameVi, dto.nameEn);
   }
+
+  @Get('/list-children/:id')
+  getListChildren(@Param('id') id: string) {
+    return this.categoryService.getAllChidrenCategoryIds(id);
+  }
 }
