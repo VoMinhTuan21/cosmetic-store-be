@@ -1,10 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
   IsMongoId,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Translation } from './common.dto';
@@ -21,4 +22,14 @@ export class CreateCategory {
   @ValidateNested({ each: true })
   @Type(() => Translation)
   name: Translation[];
+}
+
+export class UpdateCategoryDTO {
+  @ApiPropertyOptional()
+  @IsString()
+  nameVi?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  nameEn?: string;
 }

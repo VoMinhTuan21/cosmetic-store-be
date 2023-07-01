@@ -11,8 +11,12 @@ import {
   ERROR_DELETE_CATEGORY,
   ERROR_GET_CATEGORIES,
   ERROR_GET_CATEGORY_LEAF,
+  ERROR_THIS_EN_NAME_HAS_ALREADY_BEEN_USED,
+  ERROR_THIS_VI_NAME_HAS_ALREADY_BEEN_USED,
+  ERROR_UPDATE_CATEGORY_CHILD,
   GET_CATEGORIES_SUCCESS,
   GET_CATEGORY_LEAF_SUCCESS,
+  UPDATE_CATEGORY_CHILD_SUCCESS,
 } from '../../constances';
 import { CreateCategory } from '../../dto/request';
 import { CategoryLeafDTO, CategoryResDTO } from '../../dto/response';
@@ -194,6 +198,82 @@ export class CategoryService {
       return handleResponseFailure({
         error: ERROR_DELETE_CATEGORY,
         statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateCategoryChild(id: string, nameVi?: string, nameEn?: string) {
+    try {
+      if (nameVi) {
+        const existedCategoryVi = await this.categoryModel.findOne({
+          'name.value': nameVi,
+        });
+
+        if (existedCategoryVi) {
+          return handleResponseFailure({
+            error: ERROR_THIS_VI_NAME_HAS_ALREADY_BEEN_USED,
+            statusCode: HttpStatus.CONFLICT,
+          });
+        }
+      }
+
+      if (nameEn) {
+        const existedCategoryEn = await this.categoryModel.findOne({
+          'name.value': nameEn,
+        });
+
+        if (existedCategoryEn) {
+          return handleResponseFailure({
+            error: ERROR_THIS_EN_NAME_HAS_ALREADY_BEEN_USED,
+            statusCode: HttpStatus.CONFLICT,
+          });
+        }
+      }
+
+      const category = await this.categoryModel.findById(id);
+
+      const updatedName: ITranslate[] = [
+        {
+          language: 'vi',
+          value:
+            nameVi ??
+            category.name.find((item) => item.language === 'vi').value,
+        },
+        {
+          language: 'en',
+          value:
+            nameEn ??
+            category.name.find((item) => item.language === 'en').value,
+        },
+      ];
+
+      category.name = updatedName;
+
+      const ids: string[] = [category.id];
+
+      await category.save();
+
+      const parent = await this.categoryModel.findById(category.parentCategory);
+      ids.unshift(parent.id);
+
+      if (parent.parentCategory) {
+        const grandparent = await this.categoryModel.findById(
+          parent.parentCategory,
+        );
+        ids.unshift(grandparent.id);
+      }
+
+      return handleResponseSuccess({
+        data: {
+          ids,
+          updatedName,
+        },
+        message: UPDATE_CATEGORY_CHILD_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_UPDATE_CATEGORY_CHILD,
+        statusCode: error.response.statusCode || HttpStatus.BAD_REQUEST,
       });
     }
   }
