@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type, plainToInstance } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
@@ -24,6 +24,16 @@ export class CreateLeafCategory {
   @ValidateNested({ each: true })
   @Type(() => Translation)
   name: Translation[];
+}
+
+export class UpdateCategoryDTO {
+  @ApiPropertyOptional()
+  @IsString()
+  nameVi?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  nameEn?: string;
 }
 
 export class CreateRootCategoryDTO {

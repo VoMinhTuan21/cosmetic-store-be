@@ -49,4 +49,9 @@ export class VariationController {
   deleteVariationOption(@Param('id') id: string) {
     return this.variationService.deleteVariationOption(id);
   }
+
+  @Delete(':id')
+  deleteVariation(@Param('id') id: string) {
+    return this.variationService.deleteVariation(id);
+  }
 }

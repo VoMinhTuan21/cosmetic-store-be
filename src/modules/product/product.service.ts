@@ -59,6 +59,7 @@ import {
   CHECK_USER_HAS_COMMENTS_SUCCESS,
   ERROR_CHECK_USER_HAS_COMMENTS,
   ERROR_FIND_COMMON_CHILD_TAGS_OF_PARENT_TAG_IN_PRODUCT,
+  CHECK_CATEGORY_IS_BEING_USED_SUCCESS,
 } from '../../constances';
 import { Search } from '../../constances/enum';
 import {
@@ -2081,5 +2082,35 @@ export class ProductService {
     }
 
     return result;
+  }
+
+  async checkVariationOptionIsBeingUsed(id: string) {
+    const productItem = await this.productItemModel.findOne({
+      productConfigurations: new mongoose.Types.ObjectId(id),
+    });
+
+    return productItem ? true : false;
+  }
+
+  async checkBandIsBeingUsed(id: string) {
+    const product = await this.productModel.findOne({
+      brand: new mongoose.Types.ObjectId(id),
+    });
+
+    return product ? true : false;
+  }
+
+  async checkCategoryIsBeingUsed(id: string) {
+    const ids = await this.categoryService.getListChidrenCategoryIds(id);
+    ids.push(id);
+
+    const product = await this.productModel.findOne({
+      categories: { $in: ids.map((item) => new mongoose.Types.ObjectId(item)) },
+    });
+
+    return handleResponseSuccess({
+      data: product ? true : false,
+      message: CHECK_CATEGORY_IS_BEING_USED_SUCCESS,
+    });
   }
 }

@@ -5,12 +5,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import {
   CREATE_CATEGORY_SUCCESS,
+  DELETE_CATEGORY_SUCCESS,
   ERROR_CATEGORY_EXISTED,
   ERROR_CREATE_CATEGORY,
+  ERROR_DELETE_CATEGORY,
   ERROR_GET_CATEGORIES,
   ERROR_GET_CATEGORY_LEAF,
+  ERROR_THIS_EN_NAME_HAS_ALREADY_BEEN_USED,
+  ERROR_THIS_VI_NAME_HAS_ALREADY_BEEN_USED,
+  ERROR_UPDATE_CATEGORY_CHILD,
   GET_CATEGORIES_SUCCESS,
   GET_CATEGORY_LEAF_SUCCESS,
+  UPDATE_CATEGORY_CHILD_SUCCESS,
 } from '../../constances';
 import {
   CreateLeafCategory,
@@ -55,9 +61,19 @@ export class CategoryService {
         name: body.name,
       });
 
+      const ids: string[] = [body.parentCategory, newCategory.id];
+
+      const parent = await this.categoryModel.findById(body.parentCategory);
+      if (parent.parentCategory) {
+        ids.unshift(parent.parentCategory.toString());
+      }
+
       return handleResponseSuccess({
         message: CREATE_CATEGORY_SUCCESS,
-        data: newCategory,
+        data: {
+          ids,
+          newCategory: this.mapper.map(newCategory, Category, CategoryResDTO),
+        },
       });
     } catch (error) {
       console.log('error: ', error);
@@ -178,6 +194,110 @@ export class CategoryService {
       'name.value': { $regex: categoryName, $options: 'i' },
     });
     return category.id ? category.id : '';
+  }
+
+  async deletCategory(id: string) {
+    try {
+      const category = await this.categoryModel.findById(id);
+
+      if (category.icon) {
+        this.cloudinaryService.deleteImage(category.icon);
+      }
+
+      const children = await this.getListChidrenCategoryIds(id);
+
+      if (children.length > 0) {
+        for (const childId of children) {
+          await this.categoryModel.findByIdAndDelete(childId);
+        }
+      }
+
+      return handleResponseSuccess({
+        message: DELETE_CATEGORY_SUCCESS,
+        data: id,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_DELETE_CATEGORY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateCategoryChild(id: string, nameVi?: string, nameEn?: string) {
+    try {
+      if (nameVi) {
+        const existedCategoryVi = await this.categoryModel.findOne({
+          'name.value': nameVi,
+        });
+
+        if (existedCategoryVi) {
+          return handleResponseFailure({
+            error: ERROR_THIS_VI_NAME_HAS_ALREADY_BEEN_USED,
+            statusCode: HttpStatus.CONFLICT,
+          });
+        }
+      }
+
+      if (nameEn) {
+        const existedCategoryEn = await this.categoryModel.findOne({
+          'name.value': nameEn,
+        });
+
+        if (existedCategoryEn) {
+          return handleResponseFailure({
+            error: ERROR_THIS_EN_NAME_HAS_ALREADY_BEEN_USED,
+            statusCode: HttpStatus.CONFLICT,
+          });
+        }
+      }
+
+      const category = await this.categoryModel.findById(id);
+
+      const updatedName: ITranslate[] = [
+        {
+          language: 'vi',
+          value:
+            nameVi ??
+            category.name.find((item) => item.language === 'vi').value,
+        },
+        {
+          language: 'en',
+          value:
+            nameEn ??
+            category.name.find((item) => item.language === 'en').value,
+        },
+      ];
+
+      category.name = updatedName;
+
+      const ids: string[] = [category.id];
+
+      await category.save();
+
+      const parent = await this.categoryModel.findById(category.parentCategory);
+      ids.unshift(parent.id);
+
+      if (parent.parentCategory) {
+        const grandparent = await this.categoryModel.findById(
+          parent.parentCategory,
+        );
+        ids.unshift(grandparent.id);
+      }
+
+      return handleResponseSuccess({
+        data: {
+          ids,
+          updatedName,
+        },
+        message: UPDATE_CATEGORY_CHILD_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_UPDATE_CATEGORY_CHILD,
+        statusCode: error.response.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 
   async createRootCategory(

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -10,9 +11,9 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import {
-  CreateBrandDTO,
   CreateLeafCategory,
   CreateRootCategoryDTO,
+  UpdateCategoryDTO,
   UpdateRootCategoryDTO,
 } from '../../dto/request';
 import { CategoryService } from './category.service';
@@ -75,5 +76,15 @@ export class CategoryController {
   @Get('/:id')
   getlistId(@Param('id') id: string) {
     return this.categoryService.getListChidrenCategoryIds(id);
+  }
+
+  @Delete('/:id')
+  delete(@Param('id') id: string) {
+    return this.categoryService.deletCategory(id);
+  }
+
+  @Put('/child/:id')
+  updateCategoryChild(@Param('id') id: string, @Body() dto: UpdateCategoryDTO) {
+    return this.categoryService.updateCategoryChild(id, dto.nameVi, dto.nameEn);
   }
 }
