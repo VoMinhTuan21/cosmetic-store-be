@@ -12,7 +12,11 @@ import {
   GET_CATEGORIES_SUCCESS,
   GET_CATEGORY_LEAF_SUCCESS,
 } from '../../constances';
-import { CreateCategory } from '../../dto/request';
+import {
+  CreateLeafCategory,
+  CreateRootCategoryDTO,
+  UpdateRootCategoryDTO,
+} from '../../dto/request';
 import { CategoryLeafDTO, CategoryResDTO } from '../../dto/response';
 import { Category, CategoryDocument } from '../../schemas';
 import {
@@ -20,6 +24,13 @@ import {
   handleResponseSuccess,
 } from '../../utils/handle-response';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import {
+  CREATE_ROOT_CATEGORY_SUCCESS,
+  ERROR_CATEGORY_NOT_FOUND,
+  ERROR_CREATE_ROOT_CATEGORY,
+  ERROR_UPDATE_ROOT_CATEGORY,
+  UPDATE_ROOT_CATEGORY_SUCCESS,
+} from '../../constances/category-response-message';
 
 @Injectable()
 export class CategoryService {
@@ -29,7 +40,7 @@ export class CategoryService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async create(body: CreateCategory) {
+  async createLeafCategory(body: CreateLeafCategory) {
     try {
       const existedCate = await this.categoryModel.findOne({ name: body.name });
       if (existedCate) {
@@ -113,12 +124,13 @@ export class CategoryService {
       const parents = await this.getParentCategory();
       for (const parent of parents) {
         const children = await this.getChildrenCategory(parent._id);
+        parent.children = [];
         if (children.length > 0) {
           parent.children = children;
 
           for (const child of parent.children) {
             const grandChildren = await this.getChildrenCategory(child._id);
-
+            child.children = [];
             if (grandChildren.length > 0) {
               child.children = grandChildren;
             }
@@ -166,5 +178,131 @@ export class CategoryService {
       'name.value': { $regex: categoryName, $options: 'i' },
     });
     return category.id ? category.id : '';
+  }
+
+  async createRootCategory(
+    dto: CreateRootCategoryDTO,
+    icon: Express.Multer.File,
+  ) {
+    try {
+      const name: ITranslate[] = [
+        {
+          language: 'vi',
+          value: dto.nameVi,
+        },
+        {
+          language: 'en',
+          value: dto.nameEn,
+        },
+      ];
+
+      const existedCate = await this.categoryModel.findOne({
+        name: name,
+      });
+      if (existedCate) {
+        return handleResponseFailure({
+          error: ERROR_CATEGORY_EXISTED,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
+      const { public_id } = await this.cloudinaryService.uploadImage(
+        icon,
+        'hygge/categories',
+      );
+
+      const url = await this.cloudinaryService.getImageUrl(public_id);
+
+      const newCategory = await this.categoryModel.create({
+        icon: public_id,
+        name: name,
+      });
+
+      newCategory.icon = url;
+
+      return handleResponseSuccess({
+        message: CREATE_ROOT_CATEGORY_SUCCESS,
+        data: this.mapper.map(newCategory, Category, CategoryResDTO),
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_CREATE_ROOT_CATEGORY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async updateRootCategory(
+    categoryId: string,
+    dto: UpdateRootCategoryDTO,
+    icon?: Express.Multer.File,
+  ) {
+    try {
+      const updateCategory = await this.categoryModel.findById(categoryId);
+
+      if (!updateCategory) {
+        return handleResponseFailure({
+          error: ERROR_CATEGORY_NOT_FOUND,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+
+      const name: ITranslate[] = [
+        {
+          language: 'vi',
+          value:
+            dto.nameVi ??
+            updateCategory.name.find((name) => name.language === 'vi').value,
+        },
+        {
+          language: 'en',
+          value:
+            dto.nameEn ??
+            updateCategory.name.find((name) => name.language === 'en').value,
+        },
+      ];
+
+      const existedCate = await this.categoryModel.findOne({
+        name: name,
+      });
+
+      if (existedCate && categoryId !== existedCate.id) {
+        return handleResponseFailure({
+          error: ERROR_CATEGORY_EXISTED,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
+      updateCategory.name = name;
+
+      if (icon) {
+        this.cloudinaryService.deleteImage(updateCategory.icon);
+
+        const { public_id } = await this.cloudinaryService.uploadImage(
+          icon,
+          'hygge/categories',
+        );
+
+        updateCategory.icon = public_id;
+      }
+
+      await updateCategory.save();
+
+      const url = await this.cloudinaryService.getImageUrl(updateCategory.icon);
+
+      updateCategory.icon = url;
+
+      return handleResponseSuccess({
+        message: UPDATE_ROOT_CATEGORY_SUCCESS,
+        data: this.mapper.map(updateCategory, Category, CategoryResDTO),
+      });
+    } catch (error) {
+      console.log('error: ', error);
+      return handleResponseFailure({
+        error: ERROR_UPDATE_ROOT_CATEGORY,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 }

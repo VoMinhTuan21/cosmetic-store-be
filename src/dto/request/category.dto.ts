@@ -1,15 +1,18 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type, plainToInstance } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
   IsMongoId,
+  IsNotEmpty,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Translation } from './common.dto';
+import { Language } from '../../constances/enum';
 
-export class CreateCategory {
+export class CreateLeafCategory {
   @ApiProperty({ type: String })
   @IsMongoId()
   @IsOptional()
@@ -21,4 +24,36 @@ export class CreateCategory {
   @ValidateNested({ each: true })
   @Type(() => Translation)
   name: Translation[];
+}
+
+export class CreateRootCategoryDTO {
+  @ApiProperty({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  nameVi: string;
+
+  @ApiProperty({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  nameEn: string;
+
+  @ApiProperty({ type: 'string', format: 'binary' })
+  icon: Express.Multer.File;
+}
+
+export class UpdateRootCategoryDTO {
+  @ApiPropertyOptional({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  nameVi?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  nameEn?: string;
+
+  @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  icon?: Express.Multer.File;
 }
