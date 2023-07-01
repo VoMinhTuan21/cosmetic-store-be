@@ -187,6 +187,20 @@ export class CategoryService {
   async deletCategory(id: string) {
     try {
       const category = await this.categoryModel.findById(id);
+      const ids: string[] = [category.id];
+
+      if (category.parentCategory) {
+        const parent = await this.categoryModel.findById(
+          category.parentCategory,
+        );
+        ids.unshift(parent.id);
+        if (parent.parentCategory) {
+          const grandParent = await this.categoryModel.findById(
+            parent.parentCategory,
+          );
+          ids.unshift(grandParent.id);
+        }
+      }
 
       if (category.icon) {
         this.cloudinaryService.deleteImage(category.icon);
@@ -202,7 +216,7 @@ export class CategoryService {
 
       return handleResponseSuccess({
         message: DELETE_CATEGORY_SUCCESS,
-        data: id,
+        data: ids,
       });
     } catch (error) {
       return handleResponseFailure({
