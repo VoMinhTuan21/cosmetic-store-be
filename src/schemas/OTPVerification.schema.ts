@@ -26,7 +26,7 @@ export class OTPVerification {
     default: Date.now(),
     expires: 600,
   })
-  expire_at: Date;
+  expireAt: Date;
 }
 
 export const OTPVerificationSchema =

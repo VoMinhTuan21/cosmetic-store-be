@@ -6,29 +6,35 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  SignInDTO,
-  SignInWithSocialMediaDTO,
-  SignUpWithPassword,
-} from '../../../dto/request/auth.dto';
-import { UserBasicInfoDto } from '../../../dto/response/auth.dto';
-import {
-  handleResponseFailure,
-  handleResponseSuccess,
-} from '../../../utils/handle-response';
-import { comparePassword } from '../../../utils/hash-password';
-import {
   ERROR_ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
   ERROR_SIGN_UP,
   SIGN_SUCCESS,
   SIGN_UP_SUCCESS,
-  ERROR_USER_NOT_EXIST,
   SIGN_IN_SUCCESS,
   ERROR_SIGN_IN,
   ERROR_SEND_OTP,
   ERROR_EMAIL_HAS_BEEN_USED,
   SEND_OTP_SUCCESS,
+  ERROR_SIGN_IN_WITH_SOCIAL_MEDIA,
+  CHECK_STATUS_WITH_SOCIAL_ACCOUNT_SUCCESS,
+  ERROR_CHECK_STATUS_WITH_SOCIAL_ACCOUNT,
+  ERROR_ALREADY_LINKED_TO_ANOTHER_ACCOUNT,
+  LINK_ACCOUNT_SUCCESS,
+  ERROR_LINK_ACCOUNT,
+  ERROR_USER_NOT_EXIST,
 } from '../../constances';
+import { Role } from '../../constances/enum';
+import {
+  SignInWithSocialMediaDTO,
+  SignUpWithPassword,
+  SignInDTO,
+} from '../../dto/request';
+import { UserBasicInfoDto } from '../../dto/response';
 import { Account, AccountDocument, User } from '../../schemas';
+import {
+  handleResponseSuccess,
+  handleResponseFailure,
+} from '../../utils/handle-response';
 import { MailService } from '../mail/mail.service';
 import { OtpverificationService } from '../otpverification/otpverification.service';
 import { UserService } from '../user/user.service';
@@ -45,113 +51,19 @@ export class AuthService {
     private readonly otpService: OtpverificationService,
   ) {}
 
-  async loginWithSocialMedia(data: SignInWithSocialMediaDTO) {
-    const user = await this.userService.findUserByEmail(data.user.email);
-
-    if (user) {
-      const status = await this.findStatusOfAccount(
-        user._id,
-        data.account.provider,
-        data.account.providerAccountId,
-      );
-
-      switch (status) {
-        case 'existed':
-          return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
-            data: {
-              token: await this.signJWTToken(user._id, user.email, user.name),
-              user: user,
-            },
-            message: SIGN_SUCCESS,
-          });
-
-        case 'dif proverderAccountId':
-          return handleResponseFailure({
-            error: ERROR_ACCOUNT_ALREADY_LINK_TO_THIS_SOCIAL_MEDIA,
-            statusCode: HttpStatus.NOT_ACCEPTABLE,
-          });
-
-        case 'not existed':
-          await this.accountModel.create({
-            access_token: data.account.access_token,
-            token_type: data.account.token_type,
-            id_token: data.account.id_token,
-            refresh_token: data.account.refresh_token,
-            scope: data.account.scope,
-            expires_at: data.account.expires_at,
-            session_state: data.account.session_state,
-            providerAccountId: data.account.providerAccountId,
-            provider: data.account.provider,
-            type: data.account.type,
-            userId: user._id,
-          });
-          return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
-            data: {
-              token: await this.signJWTToken(user._id, user.email, user.name),
-              user: user,
-            },
-            message: SIGN_SUCCESS,
-          });
-
-        default:
-          break;
-      }
-    } else {
-      const newUser = await this.userService.createUserForSocialLogin(
-        data.user,
-      );
-
-      await this.accountModel.create({
-        ...data.account,
-        userId: newUser._id,
-      });
-
-      return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
-        data: {
-          token: await this.signJWTToken(
-            newUser._id,
-            newUser.email,
-            newUser.name,
-          ),
-          user: newUser,
-        },
-        message: SIGN_SUCCESS,
-      });
-    }
-  }
-
-  async findStatusOfAccount(
-    userId: string,
-    provider: string,
-    providerAccountId: string,
-  ): Promise<'existed' | 'dif proverderAccountId' | 'not existed'> {
-    const account = await this.accountModel.findOne({
-      provider: provider,
-      userId: userId,
-    });
-
-    if (account) {
-      if (account.providerAccountId === providerAccountId) {
-        return 'existed';
-      } else {
-        return 'dif proverderAccountId';
-      }
-    }
-
-    return 'not existed';
-  }
-
-  private async signJWTToken(
+  async signJWTToken(
     _id: string,
     email: string,
     name: string,
     rememberMe = false,
+    roles: Role[] = [Role.User],
   ): Promise<string> {
     const secret: string = this.config.get('JWT_SECRET');
     const payload: IJWTInfo = {
       _id,
       email,
       name,
+      roles,
     };
 
     let expiresIn = this.config.get('JWT_EXPIRATION_TIME_SHORT');
@@ -196,18 +108,20 @@ export class AuthService {
   async signIn(data: SignInDTO) {
     try {
       const user = await this.userService.signIn(data);
-      return handleResponseSuccess({
-        data: {
-          token: await this.signJWTToken(
-            user._id,
-            user.email,
-            user.email,
-            data.rememberMe,
-          ),
-          user: this.mapper.map(user, User, UserBasicInfoDto),
-        },
-        message: SIGN_IN_SUCCESS,
-      });
+      if (user) {
+        return handleResponseSuccess({
+          data: {
+            token: await this.signJWTToken(
+              user._id,
+              user.email,
+              user.email,
+              data.rememberMe,
+            ),
+            user: this.mapper.map(user, User, UserBasicInfoDto),
+          },
+          message: SIGN_IN_SUCCESS,
+        });
+      }
     } catch (error) {
       console.log('error: ', error);
       return handleResponseFailure({
@@ -240,6 +154,180 @@ export class AuthService {
       console.log('error: ', error);
       return handleResponseFailure({
         error: error.response?.error || ERROR_SEND_OTP,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async sendOTP(email: string) {
+    try {
+      const otp = Math.floor(100000 + Math.random() * 900000);
+
+      await this.otpService.create(email, otp.toString());
+      await this.mailService.sendUserConfirmation(email, otp.toString());
+
+      return handleResponseSuccess({
+        data: null,
+        message: SEND_OTP_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_SEND_OTP,
+        statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async loginWithSocialMedia(data: SignInWithSocialMediaDTO) {
+    try {
+      const account = await this.accountModel.findOne({
+        provider: data.account.provider,
+        userEmail: data.user.email,
+      });
+
+      // if has user and account then login
+      if (account) {
+        const user = await this.userService.findUserById(
+          account.userId as string,
+        );
+        return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
+          data: {
+            token: await this.signJWTToken(
+              user._id,
+              user.email,
+              user.name,
+              false,
+            ),
+            user: user,
+          },
+          message: SIGN_SUCCESS,
+        });
+      }
+
+      const user = await this.userService.findUserByEmail(data.user.email);
+      // if has user but not have social account
+      if (user) {
+        await this.accountModel.create({
+          ...data.account,
+          userId: user._id,
+          userEmail: user.email,
+        });
+
+        return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
+          data: {
+            token: await this.signJWTToken(
+              user._id,
+              user.email,
+              user.name,
+              false,
+            ),
+            user: user,
+          },
+          message: SIGN_SUCCESS,
+        });
+      }
+
+      // if no user and no social account
+      const newUser = await this.userService.createUserForSocialLogin(
+        data.user,
+      );
+
+      await this.accountModel.create({
+        ...data.account,
+        userId: newUser._id,
+        userEmail: newUser.email,
+      });
+
+      return handleResponseSuccess<{ token: string; user: IJWTInfo }>({
+        data: {
+          token: await this.signJWTToken(
+            newUser._id,
+            newUser.email,
+            newUser.name,
+            false,
+          ),
+          user: newUser,
+        },
+        message: SIGN_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_SIGN_IN_WITH_SOCIAL_MEDIA,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async checkStatusWithSocialAccount(id: string) {
+    try {
+      const facebook = await this.accountModel.findOne({
+        userId: id,
+        provider: 'facebook',
+      });
+      const google = await this.accountModel.findOne({
+        userId: id,
+        provider: 'google',
+      });
+
+      return handleResponseSuccess({
+        data: {
+          facebook: facebook ? true : false,
+          google: google ? true : false,
+        },
+        message: CHECK_STATUS_WITH_SOCIAL_ACCOUNT_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: ERROR_CHECK_STATUS_WITH_SOCIAL_ACCOUNT,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  async linkSocialAccount(email: string, data: SignInWithSocialMediaDTO) {
+    try {
+      const user = await this.userService.findUserByEmail(email);
+
+      if (!user) {
+        return handleResponseFailure({
+          error: ERROR_USER_NOT_EXIST,
+          statusCode: HttpStatus.BAD_REQUEST,
+        });
+      }
+
+      const account = await this.accountModel.findOne({
+        provider: data.account.provider,
+        userEmail: data.user.email,
+      });
+
+      if (account) {
+        return handleResponseFailure({
+          error: ERROR_ALREADY_LINKED_TO_ANOTHER_ACCOUNT,
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+
+      await this.accountModel.create({
+        ...data.account,
+        userId: user._id,
+        userEmail: data.user.email,
+      });
+
+      return handleResponseSuccess({
+        data: {
+          token: await this.signJWTToken(
+            user._id,
+            user.email,
+            user.name,
+            false,
+          ),
+          user: user,
+        },
+        message: LINK_ACCOUNT_SUCCESS,
+      });
+    } catch (error) {
+      return handleResponseFailure({
+        error: error.response?.error || ERROR_LINK_ACCOUNT,
         statusCode: error.response?.statusCode || HttpStatus.BAD_REQUEST,
       });
     }

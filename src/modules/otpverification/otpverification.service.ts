@@ -1,13 +1,13 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { handleResponseFailure } from '../../../utils/handle-response';
 import {
   ERROR_CREATE_OTP,
   ERROR_OTP_INCORRECT,
   ERROR_VERIFY_OTP,
 } from '../../constances';
 import { OTPVerification, OTPVerificationDocument } from '../../schemas';
+import { handleResponseFailure } from '../../utils/handle-response';
 
 @Injectable()
 export class OtpverificationService {

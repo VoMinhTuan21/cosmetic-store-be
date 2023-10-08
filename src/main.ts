@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { initSwagger } from './config/swagger';
+import * as bodyParser from 'body-parser';
+import { verifyRequestSignature } from './utils/facebook';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,6 +14,23 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   initSwagger(app);
+
+  //verify request came from facebook
+  app.use(
+    bodyParser.json({
+      verify: verifyRequestSignature,
+    }),
+  );
+
+  // Process application/x-www-form-urlencoded
+  app.use(
+    bodyParser.urlencoded({
+      extended: false,
+    }),
+  );
+
+  // Process application/json
+  app.use(bodyParser.json());
 
   app.useGlobalPipes(
     new ValidationPipe({

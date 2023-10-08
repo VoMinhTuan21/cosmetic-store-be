@@ -8,6 +8,18 @@ import { classes } from '@automapper/classes';
 import { AutomapperModule } from '@automapper/nestjs';
 import { MailModule } from './modules/mail/mail.module';
 import { OtpverificationModule } from './modules/otpverification/otpverification.module';
+import { VariationModule } from './modules/variation/variation.module';
+import { CategoryModule } from './modules/category/category.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { BrandModule } from './modules/brand/brand.module';
+import { ProductModule } from './modules/product/product.module';
+import { TagModule } from './modules/tag/tag.module';
+import { OrderModule } from './modules/order/order.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { SalesQuantityModule } from './modules/sales-quantity/sales-quantity.module';
+import { SettingModule } from './modules/setting/setting.module';
+import { DialogflowModule } from './modules/dialogflow/dialogflow.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -35,8 +47,19 @@ import { OtpverificationModule } from './modules/otpverification/otpverification
     UserModule,
     MailModule,
     OtpverificationModule,
+    VariationModule,
+    CategoryModule,
+    CloudinaryModule,
+    BrandModule,
+    ProductModule,
+    TagModule,
+    OrderModule,
+    AdminModule,
+    SalesQuantityModule,
+    SettingModule,
+    DialogflowModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}

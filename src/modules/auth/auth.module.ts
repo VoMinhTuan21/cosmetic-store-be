@@ -19,5 +19,6 @@ import { OtpverificationModule } from '../otpverification/otpverification.module
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
+  exports: [AuthService],
 })
 export class AuthModule {}
